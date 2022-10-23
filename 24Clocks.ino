@@ -36,9 +36,11 @@ void setup() {
   addMotor(OFFSET_HOURS, OFFSET_TENS, OFFSET_TOPRIGHT, OFFSET_HOURS_HAND);
   addMotor(OFFSET_HOURS, OFFSET_TENS, OFFSET_TOPRIGHT, OFFSET_MINUTES_HAND);
 
-  digitalWrite(RESET, HIGH);
+  //digitalWrite(RESET, HIGH);
 
-  setDisplayTime("0000");
+  //setDisplayTime("0000");
+
+  motors[0].setTargetRotation(270);
   
 }
 
@@ -53,11 +55,19 @@ void loop() {
 
   if (allStopped) {
 
-    timer = (timer == 9)?0:timer+1;
-    char time[4];
-    sprintf (time, "%d000", timer);
-    setDisplayTime(time);
-    delay(1000);
+    delay(5000);
+
+    Serial.println("all stopped");
+
+    timer = (timer == 3)?0:timer+1;
+    // char time[4];
+    // sprintf (time, "%d000", timer);
+    // setDisplayTime(time);
+
+    motors[0].setTargetRotation(timer * 90);
+    motors[1].setTargetRotation(timer * 90);
+    motors[2].setTargetRotation(timer * 90);
+    motors[3].setTargetRotation(timer * 90);
     
   }
 
@@ -78,10 +88,18 @@ void addMotor(char offsetHours, char offsetTens, char offsetTopleft, char offset
 
 void setDisplayTime(char* time) {
 
-  motors[OFFSET_HOURS + OFFSET_TENS + OFFSET_TOPLEFT + OFFSET_HOURS_HAND].setTargetRotation(numbers[time[0] - '0'][0][0]);
-  motors[OFFSET_HOURS + OFFSET_TENS + OFFSET_TOPLEFT + OFFSET_MINUTES_HAND].setTargetRotation(numbers[time[0] - '0'][0][1]);
-  motors[OFFSET_HOURS + OFFSET_TENS + OFFSET_TOPRIGHT + OFFSET_HOURS_HAND].setTargetRotation(numbers[time[0] - '0'][1][0]);
-  motors[OFFSET_HOURS + OFFSET_TENS + OFFSET_TOPRIGHT + OFFSET_MINUTES_HAND].setTargetRotation(numbers[time[0] - '0'][1][1]);
+  Serial.print(numbers[time[0] - '0'][0][0]);
+  Serial.print(" - ");
+  Serial.print(numbers[time[0] - '0'][0][1]);
+  Serial.print(" - ");
+  Serial.print(numbers[time[0] - '0'][1][0]);
+  Serial.print(" - ");
+  Serial.println(numbers[time[0] - '0'][1][1]);
+
+  // motors[OFFSET_HOURS + OFFSET_TENS + OFFSET_TOPLEFT + OFFSET_HOURS_HAND].setTargetRotation(numbers[time[0] - '0'][0][0]);
+  // motors[OFFSET_HOURS + OFFSET_TENS + OFFSET_TOPLEFT + OFFSET_MINUTES_HAND].setTargetRotation(numbers[time[0] - '0'][0][1]);
+  // motors[OFFSET_HOURS + OFFSET_TENS + OFFSET_TOPRIGHT + OFFSET_HOURS_HAND].setTargetRotation(numbers[time[0] - '0'][1][0]);
+  // motors[OFFSET_HOURS + OFFSET_TENS + OFFSET_TOPRIGHT + OFFSET_MINUTES_HAND].setTargetRotation(numbers[time[0] - '0'][1][1]);
 
   // motors[0].setTargetRotation(225);
   // motors[1].setTargetRotation(225);

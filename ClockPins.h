@@ -18,10 +18,10 @@
 
 
 static unsigned short pins[48][3] = { // {DIR, STEP, REVERSED}
-  { 3, 4, 0},         // HOURS   TENS  TOPLEFT     HOURS_HAND
-  { 5, 6, 1},         //                           MINUTES_HAND
-  { 7, 8, 1},         //               TOPRIGHT    HOURS_HAND
-  { 9, 10, 0},        //                           MINUTES_HAND
+  { 3, 7, 0},         // HOURS   TENS  TOPLEFT     HOURS_HAND
+  { 4, 8, 0},         //                           MINUTES_HAND
+  { 5, 9, 0},         //               TOPRIGHT    HOURS_HAND
+  { 6, 10, 0},        //                           MINUTES_HAND
   { 0, 0, 0},         //               MIDDLELEFT  HOURS_HAND
   { 0, 0, 0},         //                           MINUTES_HAND
   { 0, 0, 0},         //               MIDDLERIGHT HOURS_HAND

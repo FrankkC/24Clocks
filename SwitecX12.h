@@ -6,8 +6,8 @@ class SwitecX12 {
   public:
     unsigned char pinStep;
     unsigned char pinDir;
-    unsigned int currentStep;      // step we are currently at
-    unsigned int targetStep;       // target we are moving to
+    int currentStep;      // step we are currently at
+    int targetStep;       // target we are moving to
     unsigned int steps;            // total steps available
     unsigned long time0;           // time when we entered this state
     unsigned int microDelay;       // microsecs until next state
@@ -16,19 +16,24 @@ class SwitecX12 {
     unsigned int vel;              // steps travelled under acceleration
     int dir;                      // direction -1,0,1
     boolean stopped;               // true if stopped
+    boolean reversedDirection = false;
+    
+    SwitecX12();
     SwitecX12(unsigned int steps, unsigned char pinStep, unsigned char pinDir);
 
     //void stepUp();
+    void updateDirection();
     void step(int dir);
     void zero();
     void stepTo(int position);
     void advance();
     void update();
-    void setPosition(unsigned int pos);
+    void setPosition(int pos);
     void setTargetRotation(float rot);
     void setInitialRotation(float rot);
-    unsigned int rotationToSteps(float rot);
-    float stepsToRotation(unsigned int pos);
+    int rotationToSteps(float rot);
+    float stepsToRotation(int pos);
+    void setReversedDirection(bool reversed);
 };
 
 #endif

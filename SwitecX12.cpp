@@ -26,6 +26,8 @@ const int stepPulseMicrosec = 1;
 const int resetStepMicrosec = 500;
 #define DEFAULT_ACCEL_TABLE_SIZE (sizeof(defaultAccelTable)/sizeof(*defaultAccelTable))
 
+SwitecX12::SwitecX12() {}
+
 SwitecX12::SwitecX12(unsigned int steps, unsigned char pinStep, unsigned char pinDir)
 {
   this->steps = steps;
@@ -49,7 +51,7 @@ SwitecX12::SwitecX12(unsigned int steps, unsigned char pinStep, unsigned char pi
 
 void SwitecX12::step(int dir)
 {
-  digitalWrite(pinDir, dir > 0 ? LOW : HIGH);
+  digitalWrite(pinDir, (dir > 0) == reversedDirection ? LOW : HIGH);
   digitalWrite(13, vel == maxVel ? HIGH : LOW);
   digitalWrite(pinStep, HIGH);
   delayMicroseconds(stepPulseMicrosec);
@@ -85,10 +87,21 @@ void SwitecX12::zero()
 
 void SwitecX12::advance()
 {
+
+  //Serial.println(stepsToRotation(currentStep));
+
   // detect stopped state
   if (currentStep==targetStep && vel==0) {
+
+    Serial.print("advance currentStep:");
+    Serial.println(currentStep);
+    Serial.println("-------------------------------------");
+
     if (currentStep >= steps) {
       currentStep -= steps;
+    }
+    if (currentStep < 0) {
+      currentStep += steps;
     }
     stopped = true;
     dir = 0;
@@ -98,7 +111,7 @@ void SwitecX12::advance()
 
   // if stopped, determine direction
   if (vel==0) {
-    dir = 1;//currentStep<targetStep ? 1 : -1;
+    updateDirection();
     // do not set to 0 or it could go negative in case 2 below
     vel = 1;
   }
@@ -133,14 +146,22 @@ void SwitecX12::advance()
   while (accelTable[i][0]<vel) {
     i++;
   }
-  microDelay = accelTable[i][1];
+  microDelay = 4 * accelTable[i][1];
   time0 = micros();
 }
 
-void SwitecX12::setPosition(unsigned int pos)
+void SwitecX12::setPosition(int pos)
 {
-  // pos is unsigned so don't need to check for <0
-  if (pos < currentStep) pos += steps;
+  // Serial.print("setPosition pos:");
+  // Serial.println(pos);
+  // Serial.println("-------------------------------------");
+
+  while (pos < 0) {
+    pos += steps;
+  }
+  while (pos >= steps) {
+    pos -= steps;
+  }
   targetStep = pos;
   if (stopped) {
     // reset the timer to avoid possible time overflow giving spurious deltas
@@ -148,6 +169,48 @@ void SwitecX12::setPosition(unsigned int pos)
     time0 = micros();
     microDelay = 0;
   }
+
+  // Serial.print("setPosition targetStep:");
+  // Serial.println(targetStep);
+  // Serial.println("-------------------------------------");
+
+}
+
+void SwitecX12::updateDirection() {
+
+  // Serial.print("updateDirection targetStep:");
+  // Serial.println(targetStep);
+  // Serial.println("-------------------------------------");
+
+  dir = 1;
+  return;
+
+  int delta = targetStep - currentStep;
+  int halfSteps = steps*0.5;
+
+  // Serial.print("updateDirection delta:");
+  // Serial.println(delta);
+  // Serial.println("-------------------------------------");
+
+  if ( delta < -halfSteps ) { // < -180
+    currentStep -= steps;
+    dir = 1;
+  } else if (delta <= 0) {  // <= 0
+    dir = -1;
+  } else if (delta <= halfSteps) {  // <= 180
+    dir = 1;
+  } else { // > 180
+    targetStep -= steps;
+    dir = -1;
+  }
+
+  Serial.print(currentStep);
+  Serial.print(" --> ");
+  Serial.println(targetStep);
+  Serial.print("dir = ");
+  Serial.println(dir);
+  Serial.println("-------------------------------------");
+
 }
 
 void SwitecX12::setTargetRotation(float rot)
@@ -159,12 +222,16 @@ void SwitecX12::setInitialRotation(float rot) {
   currentStep = rotationToSteps(rot);
 }
 
-unsigned int SwitecX12::rotationToSteps(float rot) {
-  return (unsigned int)(rot / 360.0f * steps);
+int SwitecX12::rotationToSteps(float rot) {
+  return (int)(rot / 360.0f * steps);
 }
 
-float SwitecX12::stepsToRotation(unsigned int pos) {
+float SwitecX12::stepsToRotation(int pos) {
   return (float)pos * 360.0f / steps;
+}
+
+void SwitecX12::setReversedDirection(bool reversed) {
+  reversedDirection = reversed;
 }
 
 void SwitecX12::update()

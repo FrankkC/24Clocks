@@ -8,6 +8,7 @@ class SwitecX12 {
     unsigned char pinDir;
     int currentStep;      // step we are currently at
     int targetStep;       // target we are moving to
+    int travelSteps = 0;
     unsigned int steps;            // total steps available
     unsigned long time0;           // time when we entered this state
     unsigned int microDelay;       // microsecs until next state
@@ -22,7 +23,7 @@ class SwitecX12 {
     SwitecX12(unsigned int steps, unsigned char pinStep, unsigned char pinDir);
 
     //void stepUp();
-    void updateDirection();
+    void updateTravelData();
     void step(int dir);
     void zero();
     void stepTo(int position);

@@ -93,9 +93,9 @@ void SwitecX12::advance()
   // detect stopped state
   if (currentStep==targetStep && vel==0) {
 
-    Serial.print("advance currentStep:");
-    Serial.println(currentStep);
-    Serial.println("-------------------------------------");
+    // Serial.print("advance currentStep:");
+    // Serial.println(currentStep);
+    // Serial.println("-------------------------------------");
 
     if (currentStep >= steps) {
       currentStep -= steps;
@@ -103,6 +103,7 @@ void SwitecX12::advance()
     if (currentStep < 0) {
       currentStep += steps;
     }
+    targetStep = currentStep;
     stopped = true;
     dir = 0;
     time0 = micros();
@@ -111,7 +112,7 @@ void SwitecX12::advance()
 
   // if stopped, determine direction
   if (vel==0) {
-    updateDirection();
+    updateTravelData();
     // do not set to 0 or it could go negative in case 2 below
     vel = 1;
   }
@@ -120,25 +121,18 @@ void SwitecX12::advance()
 
   // determine delta, number of steps in current direction to target.
   // may be negative if we are headed away from target
-  int delta = dir>0 ? targetStep-currentStep : currentStep-targetStep;
+  int stepsToTravel = (targetStep - currentStep) * dir;
 
-  if (delta>0) {
-    // case 1 : moving towards target (maybe under accel or decel)
-    //Serial.println("case1");
-    if (delta < vel) {
-      // time to declerate
-      vel = delta;
-    } else if (vel < maxVel) {
-      // accelerating
-      vel++;
-    } else {
-      // at full speed - stay there
-    }
+  if (stepsToTravel < vel) {
+    // time to declerate
+    vel = stepsToTravel;
+  } else if (vel < maxVel) {
+    // accelerating
+    vel++;
   } else {
-    // case 2 : at or moving away from target (slow down!)
-    //Serial.println("case2");
-    vel--;
+    // at full speed - stay there
   }
+
 
   // vel now defines delay
   unsigned char i = 0;
@@ -176,14 +170,11 @@ void SwitecX12::setPosition(int pos)
 
 }
 
-void SwitecX12::updateDirection() {
+void SwitecX12::updateTravelData() {
 
   // Serial.print("updateDirection targetStep:");
   // Serial.println(targetStep);
   // Serial.println("-------------------------------------");
-
-  dir = 1;
-  return;
 
   int delta = targetStep - currentStep;
   int halfSteps = steps*0.5;
@@ -204,12 +195,14 @@ void SwitecX12::updateDirection() {
     dir = -1;
   }
 
+  travelSteps = (targetStep - currentStep) * dir;
+
   Serial.print(currentStep);
   Serial.print(" --> ");
-  Serial.println(targetStep);
-  Serial.print("dir = ");
+  Serial.print(targetStep);
+  Serial.print(" dir = ");
   Serial.println(dir);
-  Serial.println("-------------------------------------");
+  //Serial.println("-------------------------------------");
 
 }
 

@@ -1,6 +1,9 @@
 #include "SwitecX12.h"
+#include "ClockPositions.h"
+#include "ClockPins.h"
 
 const int STEPS = 360 * 12;
+const int RESET = 2;
 
 /*
 
@@ -19,69 +22,71 @@ const int STEPS = 360 * 12;
 
 */
 
-const int RESET = 2;
-const int D_DIR = 3;
-const int D_STEP = 4;
-const int A_DIR = 5;
-const int A_STEP = 6;
-const int B_DIR = 7;
-const int B_STEP = 8;
-const int C_DIR = 9;
-const int C_STEP = 10;
-const int COMMON_DIR = 11;
-const int NULL_DIR = 12;
+#define CONNECTED_MOTORS 4
 
-SwitecX12 motor1(STEPS, A_STEP, A_DIR);
-SwitecX12 motor2(STEPS, B_STEP, B_DIR);
-SwitecX12 motor3(STEPS, C_STEP, C_DIR);
-SwitecX12 motor4(STEPS, D_STEP, D_DIR);
-
+SwitecX12 motors[CONNECTED_MOTORS];
+int timer = 0;
 
 void setup() {
 
+  Serial.begin(115200);
+
+  addMotor(OFFSET_HOURS, OFFSET_TENS, OFFSET_TOPLEFT, OFFSET_HOURS_HAND);
+  addMotor(OFFSET_HOURS, OFFSET_TENS, OFFSET_TOPLEFT, OFFSET_MINUTES_HAND);
+  addMotor(OFFSET_HOURS, OFFSET_TENS, OFFSET_TOPRIGHT, OFFSET_HOURS_HAND);
+  addMotor(OFFSET_HOURS, OFFSET_TENS, OFFSET_TOPRIGHT, OFFSET_MINUTES_HAND);
+
   digitalWrite(RESET, HIGH);
-  Serial.begin(9600);
 
-  //motor1.setInitialRotation(0.0);
-  motor1.setTargetRotation(90);
-
-  //motor2.setInitialRotation(0.0);
-  motor2.setTargetRotation(90);
-
-  //motor3.setInitialRotation(0.0);
-  motor3.setTargetRotation(90);
-
-  //motor4.setInitialRotation(0.0);
-  motor4.setTargetRotation(90);
-
+  setDisplayTime("0000");
   
 }
 
 void loop() {
 
-  /*static bool forward = true;
-  static int position1 = STEPS;
-  static int position2 = 0;
-  if (motor1.stopped && motor2.stopped && motor3.stopped && motor4.stopped) {
-    motor1.setPosition(forward ? position1 : position2);
-    forward = !forward;
-  }*/
-  //if (motor2.stopped) {
+  bool allStopped = false;
+
+  for (int i = 0; i < CONNECTED_MOTORS; i++) {
+    motors[i].update();
+    allStopped |= motors[i].stopped;
+  }
+
+  if (allStopped) {
+
+    timer = (timer == 9)?0:timer+1;
+    char time[4];
+    sprintf (time, "%d000", timer);
+    setDisplayTime(time);
+    delay(1000);
     
-    // float targetRotation = 10 * random(0,36);
-    // Serial.print("Next target rotation: ");
-    // Serial.print(targetRotation);
-    // Serial.print("\n\n");
-
-
-    //motor2.setTargetRotation(90);
-
-    //delay(2000);
-  //}
-
-  motor1.update();
-  motor2.update();
-  motor3.update();
-  motor4.update();
+  }
 
 }
+
+void addMotor(char offsetHours, char offsetTens, char offsetTopleft, char offsetHoursHand) {
+
+  char totalOffset = offsetHours + offsetTens + offsetTopleft + offsetHoursHand;
+  motors[totalOffset] = SwitecX12(STEPS, pins[totalOffset][1], pins[totalOffset][0]);
+
+  if ( pins[totalOffset][2] ) {
+    motors[totalOffset].setReversedDirection(true);
+  }
+
+  motors[totalOffset].setInitialRotation(0);
+
+}
+
+void setDisplayTime(char* time) {
+
+  motors[OFFSET_HOURS + OFFSET_TENS + OFFSET_TOPLEFT + OFFSET_HOURS_HAND].setTargetRotation(numbers[time[0] - '0'][0][0]);
+  motors[OFFSET_HOURS + OFFSET_TENS + OFFSET_TOPLEFT + OFFSET_MINUTES_HAND].setTargetRotation(numbers[time[0] - '0'][0][1]);
+  motors[OFFSET_HOURS + OFFSET_TENS + OFFSET_TOPRIGHT + OFFSET_HOURS_HAND].setTargetRotation(numbers[time[0] - '0'][1][0]);
+  motors[OFFSET_HOURS + OFFSET_TENS + OFFSET_TOPRIGHT + OFFSET_MINUTES_HAND].setTargetRotation(numbers[time[0] - '0'][1][1]);
+
+  // motors[0].setTargetRotation(225);
+  // motors[1].setTargetRotation(225);
+  // motors[2].setTargetRotation(225);
+  // motors[3].setTargetRotation(225);
+
+}
+

@@ -29,82 +29,73 @@ int timer = 0;
 
 void setup() {
 
-  Serial.begin(115200);
+    Serial.begin(115200);
 
-  addMotor(OFFSET_HOURS, OFFSET_TENS, OFFSET_TOPLEFT, OFFSET_HOURS_HAND);
-  addMotor(OFFSET_HOURS, OFFSET_TENS, OFFSET_TOPLEFT, OFFSET_MINUTES_HAND);
-  addMotor(OFFSET_HOURS, OFFSET_TENS, OFFSET_TOPRIGHT, OFFSET_HOURS_HAND);
-  addMotor(OFFSET_HOURS, OFFSET_TENS, OFFSET_TOPRIGHT, OFFSET_MINUTES_HAND);
+    addMotor(OFFSET_HOURS, OFFSET_TENS, OFFSET_TOPLEFT, OFFSET_HOURS_HAND);
+    addMotor(OFFSET_HOURS, OFFSET_TENS, OFFSET_TOPLEFT, OFFSET_MINUTES_HAND);
+    addMotor(OFFSET_HOURS, OFFSET_TENS, OFFSET_TOPRIGHT, OFFSET_HOURS_HAND);
+    addMotor(OFFSET_HOURS, OFFSET_TENS, OFFSET_TOPRIGHT, OFFSET_MINUTES_HAND);
 
-  //digitalWrite(RESET, HIGH);
+    digitalWrite(RESET, HIGH);
 
-  //setDisplayTime("0000");
-
-  motors[0].setTargetRotation(270);
-  
+    setDisplayTime("0000");
+    
 }
 
 void loop() {
 
-  bool allStopped = false;
+    bool allStopped = false;
 
-  for (int i = 0; i < CONNECTED_MOTORS; i++) {
-    motors[i].update();
-    allStopped |= motors[i].stopped;
-  }
+    for (int i = 0; i < CONNECTED_MOTORS; i++) {
+        motors[i].update();
+        allStopped |= motors[i].stopped;
+    }
 
-  if (allStopped) {
+    if (allStopped) {
 
-    delay(5000);
-
-    Serial.println("all stopped");
-
-    timer = (timer == 3)?0:timer+1;
-    // char time[4];
-    // sprintf (time, "%d000", timer);
-    // setDisplayTime(time);
-
-    motors[0].setTargetRotation(timer * 90);
-    motors[1].setTargetRotation(timer * 90);
-    motors[2].setTargetRotation(timer * 90);
-    motors[3].setTargetRotation(timer * 90);
-    
-  }
+        delay(1000);
+        timer = (timer == 9)?0:timer+1;
+        char time[4];
+        sprintf (time, "%d000", timer);
+        setDisplayTime(time);
+        
+    }
 
 }
 
 void addMotor(char offsetHours, char offsetTens, char offsetTopleft, char offsetHoursHand) {
 
-  char totalOffset = offsetHours + offsetTens + offsetTopleft + offsetHoursHand;
-  motors[totalOffset] = SwitecX12(STEPS, pins[totalOffset][1], pins[totalOffset][0]);
+    char totalOffset = offsetHours + offsetTens + offsetTopleft + offsetHoursHand;
+    motors[totalOffset] = SwitecX12(STEPS, pins[totalOffset][1], pins[totalOffset][0]);
 
-  if ( pins[totalOffset][2] ) {
-    motors[totalOffset].setReversedDirection(true);
-  }
+    if ( pins[totalOffset][2] ) {
+        motors[totalOffset].setReversedDirection(true);
+    }
 
-  motors[totalOffset].setInitialRotation(0);
+    motors[totalOffset].setInitialRotation(0);
 
 }
 
 void setDisplayTime(char* time) {
 
-  Serial.print(numbers[time[0] - '0'][0][0]);
-  Serial.print(" - ");
-  Serial.print(numbers[time[0] - '0'][0][1]);
-  Serial.print(" - ");
-  Serial.print(numbers[time[0] - '0'][1][0]);
-  Serial.print(" - ");
-  Serial.println(numbers[time[0] - '0'][1][1]);
+    // Spostamenti in avanti (entro che range?) funzionano regolarmente.
+    // Da sistemare gli spostamenti in direzione negativa
+    // Al momento qualsiasi cosa >= 360 viene riportata nel range 0-359
 
-  // motors[OFFSET_HOURS + OFFSET_TENS + OFFSET_TOPLEFT + OFFSET_HOURS_HAND].setTargetRotation(numbers[time[0] - '0'][0][0]);
-  // motors[OFFSET_HOURS + OFFSET_TENS + OFFSET_TOPLEFT + OFFSET_MINUTES_HAND].setTargetRotation(numbers[time[0] - '0'][0][1]);
-  // motors[OFFSET_HOURS + OFFSET_TENS + OFFSET_TOPRIGHT + OFFSET_HOURS_HAND].setTargetRotation(numbers[time[0] - '0'][1][0]);
-  // motors[OFFSET_HOURS + OFFSET_TENS + OFFSET_TOPRIGHT + OFFSET_MINUTES_HAND].setTargetRotation(numbers[time[0] - '0'][1][1]);
+    int step = (time[0] - '0') * 20;
 
-  // motors[0].setTargetRotation(225);
-  // motors[1].setTargetRotation(225);
-  // motors[2].setTargetRotation(225);
-  // motors[3].setTargetRotation(225);
+    Serial.print("advance currentStep:");
+    Serial.println(step);
+
+    // motors[OFFSET_HOURS + OFFSET_TENS + OFFSET_TOPLEFT + OFFSET_HOURS_HAND].setTargetRotation(numbers[time[0] - '0'][0][0]);
+    // motors[OFFSET_HOURS + OFFSET_TENS + OFFSET_TOPLEFT + OFFSET_MINUTES_HAND].setTargetRotation(numbers[time[0] - '0'][0][1]);
+    // motors[OFFSET_HOURS + OFFSET_TENS + OFFSET_TOPRIGHT + OFFSET_HOURS_HAND].setTargetRotation(numbers[time[0] - '0'][1][0]);
+    // motors[OFFSET_HOURS + OFFSET_TENS + OFFSET_TOPRIGHT + OFFSET_MINUTES_HAND].setTargetRotation(numbers[time[0] - '0'][1][1]);
+
+    motors[0].setTargetRotation(step);
+    motors[1].setTargetRotation(step);
+    motors[2].setTargetRotation(step);
+    motors[3].setTargetRotation(step);
 
 }
 

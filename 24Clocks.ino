@@ -54,8 +54,14 @@ void loop() {
     if (allStopped) {
 
         delay(1000);
-        timer = (timer == 9)?0:timer+1;
+        if (timer == 9) {
+          timer = 0;
+          delay(4000);          
+        } else {
+          timer++;
+        }
         char time[4];
+
         sprintf (time, "%d000", timer);
         setDisplayTime(time);
         
@@ -82,7 +88,10 @@ void setDisplayTime(char* time) {
     // Da sistemare gli spostamenti in direzione negativa
     // Al momento qualsiasi cosa >= 360 viene riportata nel range 0-359
 
-    int step = (time[0] - '0') * 20;
+    Serial.print("setDisplayTime");
+    Serial.println(time);
+
+    int step = (time[0] - '0') * 60;
 
     Serial.print("advance currentStep:");
     Serial.println(step);

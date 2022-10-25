@@ -10,7 +10,7 @@
 #include <Arduino.h>
 #include "SwitecX12.h"
 
-const int staticDelay = 4 * 800;
+const int staticDelay = 4 * 0;
 
 const int stepPulseMicrosec = 1;
 const int resetStepMicrosec = 500;

@@ -29,6 +29,8 @@ int timer = 0;
 
 void setup() {
 
+    digitalWrite(RESET, HIGH);
+
     Serial.begin(115200);
 
     addMotor(OFFSET_HOURS, OFFSET_TENS, OFFSET_TOPLEFT, OFFSET_HOURS_HAND);
@@ -36,7 +38,7 @@ void setup() {
     addMotor(OFFSET_HOURS, OFFSET_TENS, OFFSET_TOPRIGHT, OFFSET_HOURS_HAND);
     addMotor(OFFSET_HOURS, OFFSET_TENS, OFFSET_TOPRIGHT, OFFSET_MINUTES_HAND);
 
-    digitalWrite(RESET, HIGH);
+
 
     setDisplayTime("0000");
     

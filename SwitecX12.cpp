@@ -45,7 +45,7 @@ void SwitecX12::step()
 {
 
     for (int i=0; i<4; i++) {
-        digitalWrite(pinDir[i], (dir > 0) == reversedDirection ? LOW : HIGH);
+        digitalWrite(pinDir[i], (dir[i] > 0) == reversedDirection[i] ? LOW : HIGH);
     }
     
     for (int i=0; i<4; i++) {
@@ -143,7 +143,9 @@ void SwitecX12::updateDirections() {
         int delta = targetStep[i] - currentStep[i];
         int halfSteps = steps*0.5;
 
-        if ( delta < -halfSteps ) { // < -180
+        if ( delta == 0 ) {
+            dir[i] = 0;
+        } else if ( delta < -halfSteps ) { // < -180
             targetStep[i] += steps;
             dir[i] = 1;
         } else if (delta <= 0) {  // <= 0

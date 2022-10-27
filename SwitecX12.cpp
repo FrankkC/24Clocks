@@ -10,8 +10,10 @@
 #include <Arduino.h>
 #include "SwitecX12.h"
 
-const int staticDelay = 4 * 10;
+// Individuare il valore ideale per il delay tra uno step e l'altro (microsecondi)
+const int staticDelay = 1;
 
+// Individuare il valore ideale per il tempo di up dell'impulso per ogni step (microsecondi)
 const int stepPulseMicrosec = 1;
 const int resetStepMicrosec = 500;
 

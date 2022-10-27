@@ -3,7 +3,7 @@
 #include "ClockPins.h"
 
 const int STEPS = 360 * 12;
-const int RESET = 2;
+const int RESET = 50;
 
 /*
 
@@ -22,7 +22,7 @@ const int RESET = 2;
 
 */
 
-#define CONNECTED_BOARDS 1
+#define CONNECTED_BOARDS 6
 
 SwitecX12 boards[CONNECTED_BOARDS];
 int timer = 0;
@@ -31,11 +31,11 @@ void setup() {
 
     Serial.begin(115200);
 
-    addBoard(0);
-
+    for (int i = 0; i < CONNECTED_BOARDS; i++) {
+        addBoard(i);
+    }
+    
     digitalWrite(RESET, HIGH);
-
-    setDisplayTime("0000");
 
     Serial.println("Set now hands to 0°");
     delay(5000); 
@@ -93,29 +93,88 @@ void setDisplayTime(char* time) {
     Serial.print("setDisplayTime: ");
     Serial.println(time);
 
+    // boards[0].setTargetRotation(0, numbers[time[0] - '0'][0][0][0]);
+    // boards[0].setTargetRotation(1, numbers[time[0] - '0'][0][0][1]);
+    // boards[0].setTargetRotation(2, numbers[time[0] - '0'][0][1][0]);
+    // boards[0].setTargetRotation(3, numbers[time[0] - '0'][0][1][1]);
 
-    int step1 = numbers[time[0] - '0'][0][0];
-    int step2 = numbers[time[0] - '0'][0][1];
-    int step3 = numbers[time[0] - '0'][1][0];
-    int step4 = numbers[time[0] - '0'][1][1];
+    // boards[1].setTargetRotation(0, numbers[time[0] - '0'][1][0][0]);
+    // boards[1].setTargetRotation(1, numbers[time[0] - '0'][1][0][1]);
+    // boards[1].setTargetRotation(2, numbers[time[0] - '0'][1][1][0]);
+    // boards[1].setTargetRotation(3, numbers[time[0] - '0'][1][1][1]);
 
-    //int step = (time[0] - '0') * 60;
+    // boards[2].setTargetRotation(0, numbers[time[0] - '0'][2][0][0]);
+    // boards[2].setTargetRotation(1, numbers[time[0] - '0'][2][0][1]);
+    // boards[2].setTargetRotation(2, numbers[time[0] - '0'][2][1][0]);
+    // boards[2].setTargetRotation(3, numbers[time[0] - '0'][2][1][1]);
 
-// TODO: Usando lo stesso step per tutti i motori funziona regolarmente. Se al contrario metto valori diversi non funziona più.
-// Pertanto l'idea è quella di modificare la libreria SwitecX12 per gestire simultaneamente i 4 motori collegati a un singolo X12 in sincrono. Con la speranza che questo ci consenta di controllarli regolarmente.
-// Per verificare l'ipotesi dobbiamo collegare un secondo X12 ad Arduino. Se riesco a impostare direzioni diverse ai due X12 il problema è sicuramente collegato a come pilotiamo il singolo X12 per ottenere direzioni diverse per ognuno dei motori ad esso collegati
+    // boards[3].setTargetRotation(0, numbers[time[1] - '0'][0][0][0]);
+    // boards[3].setTargetRotation(1, numbers[time[1] - '0'][0][0][1]);
+    // boards[3].setTargetRotation(2, numbers[time[1] - '0'][0][1][0]);
+    // boards[3].setTargetRotation(3, numbers[time[1] - '0'][0][1][1]);
 
-    boards[0].setTargetRotation(0, step1);
-    boards[0].setTargetRotation(1, step2);
-    boards[0].setTargetRotation(2, step3);
-    boards[0].setTargetRotation(3, step4);
-    // motors[offset2].setTargetRotation(step1);
-    // motors[offset3].setTargetRotation(step1);
-    // motors[offset4].setTargetRotation(step1);
-    // motors[0].setTargetRotation(step);
-    // motors[1].setTargetRotation(step);
-    // motors[2].setTargetRotation(step);
-    // motors[3].setTargetRotation(step);
+    // boards[4].setTargetRotation(0, numbers[time[1] - '0'][1][0][0]);
+    // boards[4].setTargetRotation(1, numbers[time[1] - '0'][1][0][1]);
+    // boards[4].setTargetRotation(2, numbers[time[1] - '0'][1][1][0]);
+    // boards[4].setTargetRotation(3, numbers[time[1] - '0'][1][1][1]);
+
+    // boards[5].setTargetRotation(0, numbers[time[1] - '0'][2][0][0]);
+    // boards[5].setTargetRotation(1, numbers[time[1] - '0'][2][0][1]);
+    // boards[5].setTargetRotation(2, numbers[time[1] - '0'][2][1][0]);
+    // boards[5].setTargetRotation(3, numbers[time[1] - '0'][2][1][1]);
+
+    // for (int numberOffset = 0; numberOffset < 2; numberOffset++) {
+    //     for (int i = 0; i < CONNECTED_BOARDS*0.5; i++) {
+    //         boards[numberOffset * 3 + i].setTargetRotation(0, numbers[time[numberOffset] - '0'][numberOffset * 3 + i][0]);   // Left hour hand
+    //         boards[numberOffset * 3 + i].setTargetRotation(1, numbers[time[numberOffset] - '0'][numberOffset * 3 + i][1]);   // Left minutes hand
+    //         boards[numberOffset * 3 + i].setTargetRotation(2, numbers[time[numberOffset] - '0'][numberOffset * 3 + i + 1][0]); // Right hour hand
+    //         boards[numberOffset * 3 + i].setTargetRotation(3, numbers[time[numberOffset] - '0'][numberOffset * 3 + i + 1][1]); // Right minutes hand
+    //     }        
+    // }
+    
+    int step0000 = numbers[time[0] - '0'][0][0][0];
+    int step0001 = numbers[time[0] - '0'][0][0][1];
+    int step0010 = numbers[time[0] - '0'][0][1][0];
+    int step0011 = numbers[time[0] - '0'][0][1][1];
+
+    int step0100 = numbers[time[0] - '0'][1][0][0];
+    int step0101 = numbers[time[0] - '0'][1][0][1];
+    int step0110 = numbers[time[0] - '0'][1][1][0];
+    int step0111 = numbers[time[0] - '0'][1][1][1];
+
+    int step0200 = numbers[time[0] - '0'][2][0][0];
+    int step0201 = numbers[time[0] - '0'][2][0][1];
+    int step0210 = numbers[time[0] - '0'][2][1][0];
+    int step0211 = numbers[time[0] - '0'][2][1][1];
+
+    int step1000 = numbers[time[1] - '0'][0][0][0];
+    int step1001 = numbers[time[1] - '0'][0][0][1];
+    int step1010 = numbers[time[1] - '0'][0][1][0];
+    int step1011 = numbers[time[1] - '0'][0][1][1];
+
+    int step1100 = numbers[time[1] - '0'][1][0][0];
+    int step1101 = numbers[time[1] - '0'][1][0][1];
+    int step1110 = numbers[time[1] - '0'][1][1][0];
+    int step1111 = numbers[time[1] - '0'][1][1][1];
+
+    int step1200 = numbers[time[1] - '0'][2][0][0];
+    int step1201 = numbers[time[1] - '0'][2][0][1];
+    int step1210 = numbers[time[1] - '0'][2][1][0];
+    int step1211 = numbers[time[1] - '0'][2][1][1];
+
+    for (int i = 0; i < CONNECTED_BOARDS; i++) {
+        boards[i].setTargetRotation(0, step0000);   // Left hour hand
+        boards[i].setTargetRotation(1, step0001);   // Left minutes hand
+        boards[i].setTargetRotation(2, step0010); // Right hour hand
+        boards[i].setTargetRotation(3, step0011); // Right minutes hand
+    }  
+    
+
+    // Uncommenting the following lines and shortening the previous loop by 1, breaks something...
+    // boards[5].setTargetRotation(0, step1200);   // Left hour hand
+    // boards[5].setTargetRotation(1, step1201);   // Left minutes hand
+    // boards[5].setTargetRotation(2, step1210); // Right hour hand
+    // boards[5].setTargetRotation(3, step1211); // Right minutes hand
 
 }
 

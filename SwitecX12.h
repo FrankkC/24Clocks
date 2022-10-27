@@ -4,37 +4,33 @@
 
 class SwitecX12 {
     public:
-        unsigned char pinStep;
-        unsigned char pinDir;
-        int currentStep;      // step we are currently at
-        int targetStep;       // target we are moving to
-        int travelSteps = 0;
-        unsigned int steps;            // total steps available
-        unsigned long time0;           // time when we entered this state
-        unsigned int microDelay;       // microsecs until next state
-        unsigned short (*accelTable)[2]; // accel table can be modified.
-        unsigned int maxVel;           // fastest vel allowed
-        unsigned int vel;              // steps travelled under acceleration
-        int dir;                      // direction -1,0,1
-        boolean stopped;               // true if stopped
-        boolean reversedDirection = false;
+
+        unsigned int steps;      // total steps available
+        unsigned char pinStep[4];
+        unsigned char pinDir[4];
+        int currentStep[4];      // step we are currently at
+        int targetStep[4];       // target we are moving to
+        unsigned long time0 = 0; // time when we entered this state
+        int dir[4];              // direction -1,0,1
+        boolean stopped[4];
+        boolean reversedDirection[4];
         
         SwitecX12();
-        SwitecX12(unsigned int steps, unsigned char pinStep, unsigned char pinDir);
+        SwitecX12(unsigned int steps, unsigned char pinStep[], unsigned char pinDir[], boolean reversed[]);
 
-        //void stepUp();
-        void updateDirection();
-        void step(int dir);
-        void zero();
-        void stepTo(int position);
+        void updateDirections();
+        void step();
+        // void zero();
+        // void stepTo(int position);
         void advance();
         void update();
-        void setPosition(int pos);
-        void setTargetRotation(float rot);
-        void setInitialRotation(float rot);
+        bool allStopped();
+        void setPosition(unsigned char motor, int pos);
+        void setTargetRotation(unsigned char motor, float rot);
+        // void setInitialRotation(float rot);
         int rotationToSteps(float rot);
-        float stepsToRotation(int pos);
-        void setReversedDirection(bool reversed);
+        // float stepsToRotation(int pos);
+        // void setReversedDirection(bool reversed);
 };
 
 #endif

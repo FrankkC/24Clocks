@@ -10,87 +10,114 @@
 #include <Arduino.h>
 #include "SwitecX12.h"
 
-const int staticDelay = 4 * 0;
+const int staticDelay = 4 * 60;
 
 const int stepPulseMicrosec = 1;
 const int resetStepMicrosec = 500;
 
 SwitecX12::SwitecX12() {}
 
-SwitecX12::SwitecX12(unsigned int steps, unsigned char pinStep, unsigned char pinDir)
+SwitecX12::SwitecX12(unsigned int steps, unsigned char pinStep[], unsigned char pinDir[], boolean reversed[])
 {
+
     this->steps = steps;
-    this->pinStep = pinStep;
-    this->pinDir = pinDir;
-    pinMode(pinStep, OUTPUT);
-    pinMode(pinDir, OUTPUT);
-    digitalWrite(pinStep, LOW);
-    digitalWrite(pinDir, LOW);
+    for (int i=0; i<4; i++) {
 
-    dir = 0;
-    stopped = true;
-    currentStep = 0;
-    targetStep = 0;
+        this->pinStep[i] = pinStep[i];
+        this->pinDir[i] = pinDir[i];
+
+        pinMode(pinStep[i], OUTPUT);
+        pinMode(pinDir[i], OUTPUT);    
+
+        digitalWrite(pinStep[i], LOW);
+        digitalWrite(pinDir[i], LOW);
+
+        reversedDirection[i] = reversed[i];
+        stopped[i] = true;
+        currentStep[i] = 0;
+        targetStep[i] = 0;
+
+    } 
+
 }
 
-void SwitecX12::step(int dir)
+void SwitecX12::step()
 {
-    digitalWrite(pinDir, (dir > 0) == reversedDirection ? LOW : HIGH);
-    digitalWrite(pinStep, HIGH);
+
+    for (int i=0; i<4; i++) {
+        digitalWrite(pinDir[i], (dir > 0) == reversedDirection ? LOW : HIGH);
+    }
+    
+    for (int i=0; i<4; i++) {
+        digitalWrite(pinStep[i], !stopped[i]);
+    }
+    
     delayMicroseconds(stepPulseMicrosec);
-    digitalWrite(pinStep, LOW);
-    currentStep += dir;
+    
+    for (int i=0; i<4; i++) {
+        digitalWrite(pinStep[i], LOW);
+        currentStep[i] += dir[i];
+    }
+
 }
 
-void SwitecX12::stepTo(int position)
-{
-    int count;
-    int dir;
-    if (position > currentStep) {
-        dir = 1;
-        count = position - currentStep;
-    } else {
-        dir = -1;
-        count = currentStep - position;
-    }
-    for (int i=0;i<count;i++) {
-        step(dir);
-        delayMicroseconds(resetStepMicrosec);
-    }
-}
+// void SwitecX12::stepTo(int position)
+// {
+//     int count;
+//     int dir;
+//     if (position > currentStep) {
+//         dir = 1;
+//         count = position - currentStep;
+//     } else {
+//         dir = -1;
+//         count = currentStep - position;
+//     }
+//     for (int i=0;i<count;i++) {
+//         step(dir);
+//         delayMicroseconds(resetStepMicrosec);
+//     }
+// }
 
-void SwitecX12::zero()
-{
-    currentStep = steps - 1;
-    stepTo(0);
-    targetStep = 0;
-    dir = 0;
-}
+// void SwitecX12::zero()
+// {
+//     currentStep = steps - 1;
+//     stepTo(0);
+//     targetStep = 0;
+//     dir = 0;
+// }
 
 void SwitecX12::advance()
 {
 
-    if (currentStep==targetStep) {
 
-        if (currentStep >= steps) {
-            currentStep -= steps;
+    for (int i=0; i<4; i++) {
+        if (currentStep[i]==targetStep[i]) {
+
+            if (currentStep[i] >= steps) {
+                currentStep[i] -= steps;
+            }
+            if (currentStep[i] < 0) {
+                currentStep[i] += steps;
+            }
+            stopped[i] = true;
+            dir[i] = 0;
+
         }
-        if (currentStep < 0) {
-            currentStep += steps;
-        }
-        stopped = true;
-        dir = 0;
-        time0 = micros();
+    }
+
+    if (allStopped()) {
+        time0 = 0;
         return;
     }
 
-    updateDirection();
-    step(dir);
+
+    updateDirections();
+    step();
 
     time0 = micros();
 }
 
-void SwitecX12::setPosition(int step)
+void SwitecX12::setPosition(unsigned char motor, int step)
 {
 
     while (step < 0) {
@@ -100,62 +127,68 @@ void SwitecX12::setPosition(int step)
         step -= steps;
     }
 
-    targetStep = step;
+    targetStep[motor] = step;
 
-    if (stopped) {
-        stopped = false;
+    stopped[motor] = false;
+    if (time0 == 0) {
         time0 = micros();
     }
 
 }
 
-void SwitecX12::updateDirection() {
+void SwitecX12::updateDirections() {
 
-    // L'ideale sarebbe avere un parametro
+    for (int i=0; i<4; i++) {
 
-    int delta = targetStep - currentStep;
-    int halfSteps = steps*0.5;
+        int delta = targetStep[i] - currentStep[i];
+        int halfSteps = steps*0.5;
 
-    if ( delta < -halfSteps ) { // < -180
-        targetStep += steps;
-        dir = 1;
-    } else if (delta <= 0) {  // <= 0
-        dir = -1;
-    } else if (delta <= halfSteps) {  // <= 180
-        dir = 1;
-    } else { // > 180
-        targetStep -= steps;
-        dir = -1;
+        if ( delta < -halfSteps ) { // < -180
+            targetStep[i] += steps;
+            dir[i] = 1;
+        } else if (delta <= 0) {  // <= 0
+            dir[i] = -1;
+        } else if (delta <= halfSteps) {  // <= 180
+            dir[i] = 1;
+        } else { // > 180
+            targetStep[i] -= steps;
+            dir[i] = -1;
+        }
+
     }
 
 }
 
-void SwitecX12::setTargetRotation(float rot)
+void SwitecX12::setTargetRotation(unsigned char motor, float rot)
 {
     // Aggiungere un parametro per forzare il verso orario/antiorario
     // Per ora prendo la più vicina
-    setPosition(rotationToSteps(rot));
+    setPosition(motor, rotationToSteps(rot));
 }
 
-void SwitecX12::setInitialRotation(float rot) {
-    currentStep = rotationToSteps(rot);
-}
+// void SwitecX12::setInitialRotation(float rot) {
+//     currentStep = rotationToSteps(rot);
+// }
 
 int SwitecX12::rotationToSteps(float rot) {
     return (int)(rot / 360.0f * steps);
 }
 
-float SwitecX12::stepsToRotation(int pos) {
-    return (float)pos * 360.0f / steps;
-}
+// float SwitecX12::stepsToRotation(int pos) {
+//     return (float)pos * 360.0f / steps;
+// }
 
-void SwitecX12::setReversedDirection(bool reversed) {
-    reversedDirection = reversed;
+// void SwitecX12::setReversedDirection(bool reversed) {
+//     reversedDirection = reversed;
+// }
+
+bool SwitecX12::allStopped() {
+    return stopped[0] && stopped[1] && stopped[2] && stopped[3];
 }
 
 void SwitecX12::update()
 {
-    if (!stopped) {
+    if (!allStopped()) {
         unsigned long delta = micros() - time0;
         if (delta >= staticDelay) {
             advance();

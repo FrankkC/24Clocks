@@ -27,9 +27,10 @@ class SwitecX12 {
         bool allStopped();
         void setPosition(unsigned char motor, int pos);
         void setTargetRotation(unsigned char motor, float rot);
+        float getCurrentRotation(unsigned char motor);
         // void setInitialRotation(float rot);
         int rotationToSteps(float rot);
-        // float stepsToRotation(int pos);
+        float stepsToRotation(int pos);
         // void setReversedDirection(bool reversed);
 };
 

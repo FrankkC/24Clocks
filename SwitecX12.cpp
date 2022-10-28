@@ -170,6 +170,10 @@ void SwitecX12::setTargetRotation(unsigned char motor, float rot)
     setPosition(motor, rotationToSteps(rot));
 }
 
+float SwitecX12::getCurrentRotation(unsigned char motor) {
+    return stepsToRotation(currentStep[motor]);
+}
+
 // void SwitecX12::setInitialRotation(float rot) {
 //     currentStep = rotationToSteps(rot);
 // }
@@ -178,9 +182,9 @@ int SwitecX12::rotationToSteps(float rot) {
     return (int)(rot / 360.0f * steps);
 }
 
-// float SwitecX12::stepsToRotation(int pos) {
-//     return (float)pos * 360.0f / steps;
-// }
+float SwitecX12::stepsToRotation(int pos) {
+    return (float)pos * 360.0f / steps;
+}
 
 // void SwitecX12::setReversedDirection(bool reversed) {
 //     reversedDirection = reversed;

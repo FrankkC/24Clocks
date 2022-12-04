@@ -10,12 +10,15 @@
 #include <Arduino.h>
 #include "SwitecX12.h"
 
+// TODO: Provare a scrivere più pin contemporaneamente manipolando i registri.
+
+
 // Individuare il valore ideale per il delay tra uno step e l'altro (microsecondi)
 const int staticDelay = 1;
 
 // Individuare il valore ideale per il tempo di up dell'impulso per ogni step (microsecondi)
 const int stepPulseMicrosec = 1;
-const int resetStepMicrosec = 500;
+// const int resetStepMicrosec = 500;
 
 SwitecX12::SwitecX12() {}
 

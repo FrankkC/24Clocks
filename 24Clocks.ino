@@ -3,7 +3,7 @@
 #include "ClockPins.h"
 
 const int STEPS = 360 * 12;
-const int RESET = 50;
+const int RESET = 17;
 
 /*
 
@@ -22,7 +22,7 @@ const int RESET = 50;
 
 */
 
-#define CONNECTED_BOARDS 6
+#define CONNECTED_BOARDS 2
 
 SwitecX12 boards[CONNECTED_BOARDS];
 int timer = 0;
@@ -62,8 +62,6 @@ void addBoard(char boardIndex) {
 
 void loop() {
 
-    // Indagari qui, forse il problema è nella verifica che i motori siano allStopped
-
     bool allStopped = true;
 
     for (int i = 0; i < CONNECTED_BOARDS; i++) {
@@ -95,14 +93,26 @@ void setDisplayTime(char* time) {
     Serial.print("setDisplayTime: ");
     Serial.println(time);
 
-    for (int numberOffset = 0; numberOffset < 2; numberOffset++) {
-        for (int i = 0; i < CONNECTED_BOARDS*0.5; i++) {
-            boards[numberOffset * 3 + i].setTargetRotation(0, numbers[time[numberOffset] - '0'][i][0][0]);   // Left hour hand
-            boards[numberOffset * 3 + i].setTargetRotation(1, numbers[time[numberOffset] - '0'][i][0][1]);   // Left minutes hand
-            boards[numberOffset * 3 + i].setTargetRotation(2, numbers[time[numberOffset] - '0'][i][1][0]);   // Right hour hand
-            boards[numberOffset * 3 + i].setTargetRotation(3, numbers[time[numberOffset] - '0'][i][1][1]);   // Right minutes hand
-        }        
-    }
+    //for (int numberOffset = 0; numberOffset < 2; numberOffset++) {
+        //for (int i = 0; i < CONNECTED_BOARDS*0.5; i++) {
+
+            // boards[numberOffset * 3 + i].setTargetRotation(0, numbers[time[numberOffset] - '0'][i][0][0]);   // Left hour hand
+            // boards[numberOffset * 3 + i].setTargetRotation(1, numbers[time[numberOffset] - '0'][i][0][1]);   // Left minutes hand
+            // boards[numberOffset * 3 + i].setTargetRotation(2, numbers[time[numberOffset] - '0'][i][1][0]);   // Right hour hand
+            // boards[numberOffset * 3 + i].setTargetRotation(3, numbers[time[numberOffset] - '0'][i][1][1]);   // Right minutes hand
+            
+            boards[0].setTargetRotation(0, numbers[time[0] - '0'][0][0][0]);   // Left hour hand
+            boards[0].setTargetRotation(1, numbers[time[0] - '0'][0][0][1]);   // Left minutes hand
+            boards[0].setTargetRotation(2, numbers[time[0] - '0'][0][1][0]);   // Right hour hand
+            boards[0].setTargetRotation(3, numbers[time[0] - '0'][0][1][1]);   // Right minutes hand
+
+            boards[1].setTargetRotation(0, numbers[time[0] - '0'][1][0][0]);   // Left hour hand
+            boards[1].setTargetRotation(1, numbers[time[0] - '0'][1][0][1]);   // Left minutes hand
+            boards[1].setTargetRotation(2, numbers[time[0] - '0'][1][1][0]);   // Right hour hand
+            boards[1].setTargetRotation(3, numbers[time[0] - '0'][1][1][1]);   // Right minutes hand
+            
+        //}       
+    //}
 
 }
 

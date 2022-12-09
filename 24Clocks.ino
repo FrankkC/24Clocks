@@ -110,6 +110,11 @@ void setDisplayTime(char* time) {
             boards[1].setTargetRotation(1, numbers[time[0] - '0'][1][0][1]);   // Left minutes hand
             boards[1].setTargetRotation(2, numbers[time[0] - '0'][1][1][0]);   // Right hour hand
             boards[1].setTargetRotation(3, numbers[time[0] - '0'][1][1][1]);   // Right minutes hand
+
+            boards[2].setTargetRotation(0, numbers[time[0] - '0'][2][0][0]);   // Left hour hand
+            boards[2].setTargetRotation(1, numbers[time[0] - '0'][2][0][1]);   // Left minutes hand
+            boards[2].setTargetRotation(2, numbers[time[0] - '0'][2][1][0]);   // Right hour hand
+            boards[2].setTargetRotation(3, numbers[time[0] - '0'][2][1][1]);   // Right minutes hand
             
         //}       
     //}

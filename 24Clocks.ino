@@ -5,22 +5,6 @@
 const int STEPS = 360 * 12;
 const int RESET = 17;
 
-/*
-
-1  f(C)
-2  DIR(C)
-3  f(B)
-4  DIR(B)
-5  f(A)
-6  DIR(A)
-7  f(D)
-8  DIR(D)
-9  RESET
-10 GROUND
-11 +5v
-12 unused
-
-*/
 
 #define CONNECTED_BOARDS 6
 
@@ -93,46 +77,14 @@ void setDisplayTime(char* time) {
     Serial.print("setDisplayTime: ");
     Serial.println(time);
 
-    //for (int numberOffset = 0; numberOffset < 2; numberOffset++) {
-        //for (int i = 0; i < CONNECTED_BOARDS*0.5; i++) {
+    for (int i = 0; i < CONNECTED_BOARDS; i++) {
 
-            // boards[numberOffset * 3 + i].setTargetRotation(0, numbers[time[numberOffset] - '0'][i][0][0]);   // Left hour hand
-            // boards[numberOffset * 3 + i].setTargetRotation(1, numbers[time[numberOffset] - '0'][i][0][1]);   // Left minutes hand
-            // boards[numberOffset * 3 + i].setTargetRotation(2, numbers[time[numberOffset] - '0'][i][1][0]);   // Right hour hand
-            // boards[numberOffset * 3 + i].setTargetRotation(3, numbers[time[numberOffset] - '0'][i][1][1]);   // Right minutes hand
-            
-            boards[0].setTargetRotation(0, numbers[time[0] - '0'][0][0][0]);   // Left hour hand
-            boards[0].setTargetRotation(1, numbers[time[0] - '0'][0][0][1]);   // Left minutes hand
-            boards[0].setTargetRotation(2, numbers[time[0] - '0'][0][1][0]);   // Right hour hand
-            boards[0].setTargetRotation(3, numbers[time[0] - '0'][0][1][1]);   // Right minutes hand
+        boards[i].setTargetRotation(0, numbers[time[0] - '0'][i%3][0][0]);   // Left hour hand
+        boards[i].setTargetRotation(1, numbers[time[0] - '0'][i%3][0][1]);   // Left minutes hand
+        boards[i].setTargetRotation(2, numbers[time[0] - '0'][i%3][1][0]);   // Right hour hand
+        boards[i].setTargetRotation(3, numbers[time[0] - '0'][i%3][1][1]);   // Right minutes hand
 
-            boards[1].setTargetRotation(0, numbers[time[0] - '0'][1][0][0]);   // Left hour hand
-            boards[1].setTargetRotation(1, numbers[time[0] - '0'][1][0][1]);   // Left minutes hand
-            boards[1].setTargetRotation(2, numbers[time[0] - '0'][1][1][0]);   // Right hour hand
-            boards[1].setTargetRotation(3, numbers[time[0] - '0'][1][1][1]);   // Right minutes hand
-
-            boards[2].setTargetRotation(0, numbers[time[0] - '0'][2][0][0]);   // Left hour hand
-            boards[2].setTargetRotation(1, numbers[time[0] - '0'][2][0][1]);   // Left minutes hand
-            boards[2].setTargetRotation(2, numbers[time[0] - '0'][2][1][0]);   // Right hour hand
-            boards[2].setTargetRotation(3, numbers[time[0] - '0'][2][1][1]);   // Right minutes hand
-
-            boards[3].setTargetRotation(0, numbers[time[0] - '0'][0][0][0]);   // Left hour hand
-            boards[3].setTargetRotation(1, numbers[time[0] - '0'][0][0][1]);   // Left minutes hand
-            boards[3].setTargetRotation(2, numbers[time[0] - '0'][0][1][0]);   // Right hour hand
-            boards[3].setTargetRotation(3, numbers[time[0] - '0'][0][1][1]);   // Right minutes hand
-
-            boards[4].setTargetRotation(0, numbers[time[0] - '0'][1][0][0]);   // Left hour hand
-            boards[4].setTargetRotation(1, numbers[time[0] - '0'][1][0][1]);   // Left minutes hand
-            boards[4].setTargetRotation(2, numbers[time[0] - '0'][1][1][0]);   // Right hour hand
-            boards[4].setTargetRotation(3, numbers[time[0] - '0'][1][1][1]);   // Right minutes hand
-
-            boards[5].setTargetRotation(0, numbers[time[0] - '0'][2][0][0]);   // Left hour hand
-            boards[5].setTargetRotation(1, numbers[time[0] - '0'][2][0][1]);   // Left minutes hand
-            boards[5].setTargetRotation(2, numbers[time[0] - '0'][2][1][0]);   // Right hour hand
-            boards[5].setTargetRotation(3, numbers[time[0] - '0'][2][1][1]);   // Right minutes hand
-            
-        //}       
-    //}
+    }
 
 }
 

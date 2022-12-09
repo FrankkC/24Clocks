@@ -18,7 +18,6 @@ const int staticDelay = 100;
 
 // Individuare il valore ideale per il tempo di up dell'impulso per ogni step (microsecondi)
 const int stepPulseMicrosec = 1;
-// const int resetStepMicrosec = 500;
 
 SwitecX12::SwitecX12() {}
 
@@ -65,31 +64,6 @@ void SwitecX12::step()
     }
 
 }
-
-// void SwitecX12::stepTo(int position)
-// {
-//     int count;
-//     int dir;
-//     if (position > currentStep) {
-//         dir = 1;
-//         count = position - currentStep;
-//     } else {
-//         dir = -1;
-//         count = currentStep - position;
-//     }
-//     for (int i=0;i<count;i++) {
-//         step(dir);
-//         delayMicroseconds(resetStepMicrosec);
-//     }
-// }
-
-// void SwitecX12::zero()
-// {
-//     currentStep = steps - 1;
-//     stepTo(0);
-//     targetStep = 0;
-//     dir = 0;
-// }
 
 void SwitecX12::advance()
 {
@@ -188,10 +162,6 @@ int SwitecX12::rotationToSteps(float rot) {
 float SwitecX12::stepsToRotation(int pos) {
     return (float)pos * 360.0f / steps;
 }
-
-// void SwitecX12::setReversedDirection(bool reversed) {
-//     reversedDirection = reversed;
-// }
 
 bool SwitecX12::allStopped() {
     return stopped[0] && stopped[1] && stopped[2] && stopped[3];

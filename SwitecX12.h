@@ -20,8 +20,6 @@ class SwitecX12 {
 
         void updateDirections();
         void step();
-        // void zero();
-        // void stepTo(int position);
         void advance();
         void update();
         bool allStopped();
@@ -31,7 +29,6 @@ class SwitecX12 {
         // void setInitialRotation(float rot);
         int rotationToSteps(float rot);
         float stepsToRotation(int pos);
-        // void setReversedDirection(bool reversed);
 };
 
 #endif

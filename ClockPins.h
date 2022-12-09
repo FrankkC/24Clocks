@@ -33,36 +33,39 @@ static unsigned short pins[48][3] = { // {DIR, STEP, REVERSED}
     { 29, 10, 0},         //                           MINUTES_HAND
     { 27, 12, 1},         //               BOTTOMRIGHT HOURS_HAND
     { 26, 13, 0},         //                           MINUTES_HAND
+
     // Board 3
+    { 43, 31, 1},         // MINUTES  TENS TOPLEFT     HOURS_HAND
+    { 45, 30, 0},         //                           MINUTES_HAND
+    { 44, 32, 1},         //               TOPRIGHT    HOURS_HAND
+    { 42, 33, 0},         //                           MINUTES_HAND
+    // Board 4
+    { 48, 36, 1},         //               MIDDLELEFT  HOURS_HAND
+    { 49, 34, 0},         //                           MINUTES_HAND
+    { 47, 35, 1},         //               MIDDLERIGHT HOURS_HAND
+    { 46, 37, 0},         //                           MINUTES_HAND
+    // Board 5
+    { 52, 39, 1},         //               BOTTOMLEFT  HOURS_HAND
+    { 53, 38, 0},         //                           MINUTES_HAND
+    { 51, 41, 1},         //               BOTTOMRIGHT HOURS_HAND
+    { 50, 40, 0},         //                           MINUTES_HAND
+
+    // Board 6
     { 0, 0, 0},         //         UNITS TOPLEFT     HOURS_HAND
     { 0, 0, 0},         //                           MINUTES_HAND
     { 0, 0, 0},         //               TOPRIGHT    HOURS_HAND
     { 0, 0, 0},         //                           MINUTES_HAND
-    // Board 4
+    // Board 7
     { 0, 0, 0},         //               MIDDLELEFT  HOURS_HAND
     { 0, 0, 0},         //                           MINUTES_HAND
     { 0, 0, 0},         //               MIDDLERIGHT HOURS_HAND
     { 0, 0, 0},         //                           MINUTES_HAND
-    // Board 5
+    // Board 8
     { 0, 0, 0},         //               BOTTOMLEFT  HOURS_HAND
     { 0, 0, 0},         //                           MINUTES_HAND
     { 0, 0, 0},         //               BOTTOMRIGHT HOURS_HAND
     { 0, 0, 0},         //                           MINUTES_HAND
-    // Board 6
-    { 42, 38, 0},         // MINUTES  TENS TOPLEFT     HOURS_HAND
-    { 43, 39, 0},         //                           MINUTES_HAND
-    { 44, 40, 0},         //               TOPRIGHT    HOURS_HAND
-    { 45, 41, 0},         //                           MINUTES_HAND
-    // Board 7
-    { 46, 34, 0},         //               MIDDLELEFT  HOURS_HAND
-    { 47, 35, 0},         //                           MINUTES_HAND
-    { 48, 36, 0},         //               MIDDLERIGHT HOURS_HAND
-    { 49, 37, 0},         //                           MINUTES_HAND
-    // Board 8
-    { 50, 30, 0},         //               BOTTOMLEFT  HOURS_HAND
-    { 51, 31, 0},         //                           MINUTES_HAND
-    { 52, 32, 0},         //               BOTTOMRIGHT HOURS_HAND
-    { 53, 33, 0},         //                           MINUTES_HAND
+
     // Board 9
     { 0, 0, 0},         //         UNITS TOPLEFT     HOURS_HAND
     { 0, 0, 0},         //                           MINUTES_HAND

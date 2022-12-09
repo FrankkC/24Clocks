@@ -22,7 +22,7 @@ const int RESET = 17;
 
 */
 
-#define CONNECTED_BOARDS 2
+#define CONNECTED_BOARDS 6
 
 SwitecX12 boards[CONNECTED_BOARDS];
 int timer = 0;
@@ -115,6 +115,21 @@ void setDisplayTime(char* time) {
             boards[2].setTargetRotation(1, numbers[time[0] - '0'][2][0][1]);   // Left minutes hand
             boards[2].setTargetRotation(2, numbers[time[0] - '0'][2][1][0]);   // Right hour hand
             boards[2].setTargetRotation(3, numbers[time[0] - '0'][2][1][1]);   // Right minutes hand
+
+            boards[3].setTargetRotation(0, numbers[time[0] - '0'][0][0][0]);   // Left hour hand
+            boards[3].setTargetRotation(1, numbers[time[0] - '0'][0][0][1]);   // Left minutes hand
+            boards[3].setTargetRotation(2, numbers[time[0] - '0'][0][1][0]);   // Right hour hand
+            boards[3].setTargetRotation(3, numbers[time[0] - '0'][0][1][1]);   // Right minutes hand
+
+            boards[4].setTargetRotation(0, numbers[time[0] - '0'][1][0][0]);   // Left hour hand
+            boards[4].setTargetRotation(1, numbers[time[0] - '0'][1][0][1]);   // Left minutes hand
+            boards[4].setTargetRotation(2, numbers[time[0] - '0'][1][1][0]);   // Right hour hand
+            boards[4].setTargetRotation(3, numbers[time[0] - '0'][1][1][1]);   // Right minutes hand
+
+            boards[5].setTargetRotation(0, numbers[time[0] - '0'][2][0][0]);   // Left hour hand
+            boards[5].setTargetRotation(1, numbers[time[0] - '0'][2][0][1]);   // Left minutes hand
+            boards[5].setTargetRotation(2, numbers[time[0] - '0'][2][1][0]);   // Right hour hand
+            boards[5].setTargetRotation(3, numbers[time[0] - '0'][2][1][1]);   // Right minutes hand
             
         //}       
     //}

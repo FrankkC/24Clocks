@@ -1,6 +1,7 @@
 #include "SwitecX12.h"
 #include "ClockPositions.h"
 #include "ClockPins.h"
+#include "wifiManager.h"
 
 const int STEPS = 360 * 12;
 const int RESET = 17;
@@ -22,12 +23,66 @@ void setup() {
     digitalWrite(RESET, HIGH);
 
     Serial.println("Set now hands to 0°");
-    delay(5000); 
+    delay(5000);
+
+    WifiManager::init();
     
 }
 
-void addBoard(char boardIndex) {
+void loop() {
 
+    bool allStopped = true;
+
+    for (int i = 0; i < CONNECTED_BOARDS; i++) {
+        boards[i].update();
+        allStopped &= boards[i].allStopped();
+    }
+
+    if (allStopped) {
+
+        // //delay(1000);
+        // if (timer == 9) {
+        //     timer = 0;
+        //     //delay(4000);          
+        // } else {
+        //     timer++;
+        // }
+        // char time[4];
+
+        // sprintf (time, "%d000", timer);
+        // setDisplayTime(time);
+        
+    }
+
+    String incomingString = "";
+    bool stringReady = false;
+
+    while (Serial2.available()) {
+        incomingString = Serial2.readString();
+        stringReady = true;
+    }
+
+    if (stringReady) {
+        if (incomingString.startsWith("\r\n+IPD,")) {
+            Serial.println("Got data from telnet: " + incomingString);
+            //Serial.println("Sending data: "+incomingString);
+            //sendData(incomingString);
+        }
+
+        if (incomingString.indexOf("TIME=") != -1) {
+            String newTime = incomingString.substring(incomingString.indexOf("TIME=") + 5, incomingString.indexOf("TIME=") + 9);
+            Serial.println("Time to set: " + newTime);
+            setDisplayTime(newTime.c_str());
+        }
+
+        // if (IncomingString.indexOf("LED=OFF") != -1) {
+        //     digitalWrite(LED,LOW);
+        // }
+    }
+
+}
+
+void addBoard(char boardIndex) {
 
     unsigned char pinStep[4];
     unsigned char pinDir[4];
@@ -42,35 +97,6 @@ void addBoard(char boardIndex) {
     boards[boardIndex] = SwitecX12(STEPS, pinStep, pinDir, reversed);
 
 }
-
-
-void loop() {
-
-    bool allStopped = true;
-
-    for (int i = 0; i < CONNECTED_BOARDS; i++) {
-        boards[i].update();
-        allStopped &= boards[i].allStopped();
-    }
-
-    if (allStopped) {
-
-        delay(1000);
-        if (timer == 9) {
-            timer = 0;
-            delay(4000);          
-        } else {
-            timer++;
-        }
-        char time[4];
-
-        sprintf (time, "%d000", timer);
-        setDisplayTime(time);
-        
-    }
-
-}
-
 
 void setDisplayTime(char* time) {
 

@@ -7,7 +7,7 @@ WifiManager::WifiManager() {}
 
 void WifiManager::init() {
 
-    Serial2.begin(115200);
+    Serial3.begin(115200);
 
     bool success = true;
     
@@ -25,7 +25,7 @@ void WifiManager::init() {
 }
 
 bool WifiManager::sendCommand(String cmd, String ack = "", String error = "") {
-    Serial2.println(cmd); // Send "AT+" command to module
+    Serial3.println(cmd); // Send "AT+" command to module
     return echoFind(ack, error);
 }
 
@@ -42,8 +42,8 @@ bool WifiManager::echoFind(String ok, String error) {
 
     long deadline = millis() + TIMEOUT;
     while (millis() < deadline) {
-        if (Serial2.available()) {
-            char ch = Serial2.read();
+        if (Serial3.available()) {
+            char ch = Serial3.read();
             //Serial.write(ch);
 
             if (ok != "") {

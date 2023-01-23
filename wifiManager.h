@@ -10,12 +10,12 @@ class WifiManager {
 
         WifiManager();
         static void init();
+        static void sendData(String str);
 
     private:
 
         static bool sendCommand(String cmd, String ack = "", String error = "");
         static bool echoFind(String keyword, String error);
-        static void sendData(String str);
         static bool initWifi();
         static bool initServer();
 

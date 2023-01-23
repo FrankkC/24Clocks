@@ -23,8 +23,8 @@ void setup() {
     
     digitalWrite(RESET, HIGH);
 
-    Serial.println("Set now hands to 0°");
-    delay(5000);
+    //Serial.println("Set now hands to 0°");
+    //delay(5000);
 
     WifiManager::init();
     
@@ -58,8 +58,8 @@ void loop() {
     String incomingString = "";
     bool stringReady = false;
 
-    while (Serial2.available()) {
-        incomingString = Serial2.readString();
+    while (Serial3.available()) {
+        incomingString = Serial3.readString();
         stringReady = true;
     }
 
@@ -68,17 +68,20 @@ void loop() {
             Serial.println("Got data from telnet: " + incomingString);
             //Serial.println("Sending data: "+incomingString);
             //sendData(incomingString);
+            
         }
 
-        if (incomingString.indexOf("TIME=") != -1) {
+        if (incomingString.indexOf("SETTIME=") != -1) {
             String newTime = incomingString.substring(incomingString.indexOf("TIME=") + 5, incomingString.indexOf("TIME=") + 9);
             Serial.println("Time to set: " + newTime);
             setDisplayTime(newTime.c_str());
+            WifiManager::sendData("SET TIME OK\r\n");
+        } else if (incomingString.indexOf("SETZERO") != -1) {
+            WifiManager::sendData("SET ZERO OK (not implemented)\r\n");
+        } else if (incomingString.indexOf("ECHO") != -1) {
+            WifiManager::sendData("ECHO OK\r\n");
         }
 
-        // if (IncomingString.indexOf("LED=OFF") != -1) {
-        //     digitalWrite(LED,LOW);
-        // }
     }
 
 }

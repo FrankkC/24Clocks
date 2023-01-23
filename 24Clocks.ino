@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include "SwitecX12.h"
 #include "ClockPositions.h"
 #include "ClockPins.h"
@@ -98,7 +99,7 @@ void addBoard(char boardIndex) {
 
 }
 
-void setDisplayTime(char* time) {
+void setDisplayTime(const char* time) {
 
     Serial.print("setDisplayTime: ");
     Serial.println(time);

@@ -8,10 +8,12 @@ const int STEPS = 360 * 12;
 const int RESET = 17;
 
 
-#define CONNECTED_BOARDS 6
+constexpr int CONNECTED_BOARDS = 6;
+#define MASTER
 
 SwitecX12 boards[CONNECTED_BOARDS];
 int timer = 0;
+bool countMode = false;
 
 void setup() {
 
@@ -25,9 +27,10 @@ void setup() {
 
     //Serial.println("Set now hands to 0°");
     //delay(5000);
-
+#ifdef MASTER
     WifiManager::init();
-    
+#endif
+
 }
 
 void loop() {
@@ -39,22 +42,23 @@ void loop() {
         allStopped &= boards[i].allStopped();
     }
 
-    if (allStopped) {
+    if (allStopped && countMode) {
 
-        // //delay(1000);
-        // if (timer == 9) {
-        //     timer = 0;
-        //     //delay(4000);          
-        // } else {
-        //     timer++;
-        // }
-        // char time[4];
+        delay(500);
+        if (timer == 9) {
+            timer = 0;
+            delay(1000);          
+        } else {
+            timer++;
+        }
+        char time[4];
 
-        // sprintf (time, "%d000", timer);
-        // setDisplayTime(time);
+        sprintf (time, "%d0%d0", timer, timer);
+        setDisplayTime(time);
         
     }
 
+#ifdef MASTER
     String incomingString = "";
     bool stringReady = false;
 
@@ -66,9 +70,6 @@ void loop() {
     if (stringReady) {
         if (incomingString.startsWith("\r\n+IPD,")) {
             Serial.println("Got data from telnet: " + incomingString);
-            //Serial.println("Sending data: "+incomingString);
-            //sendData(incomingString);
-            
         }
 
         if (incomingString.indexOf("SETTIME=") != -1) {
@@ -76,13 +77,34 @@ void loop() {
             Serial.println("Time to set: " + newTime);
             setDisplayTime(newTime.c_str());
             WifiManager::sendData("SET TIME OK\r\n");
+        } else if (incomingString.indexOf("SETHOME") != -1) {
+            
+            Serial.println("Going home...");
+
+            for (int i = 0; i < CONNECTED_BOARDS; i++) {
+
+                boards[i].setTargetRotation(0, 0);   // Left hour hand
+                boards[i].setTargetRotation(1, 0);   // Left minutes hand
+                boards[i].setTargetRotation(2, 0);   // Right hour hand
+                boards[i].setTargetRotation(3, 0);   // Right minutes hand
+
+            }
+
+            WifiManager::sendData("SET HOME OK\r\n");
         } else if (incomingString.indexOf("SETZERO") != -1) {
             WifiManager::sendData("SET ZERO OK (not implemented)\r\n");
+        } else if (incomingString.indexOf("SETCOUNT=1") != -1) {
+            countMode = 1;
+            WifiManager::sendData("SET COUNT MODE ON OK\r\n");
+        } else if (incomingString.indexOf("SETCOUNT=0") != -1) {
+            countMode = 0;
+            WifiManager::sendData("SET COUNT MODE OFF OK\r\n");
         } else if (incomingString.indexOf("ECHO") != -1) {
             WifiManager::sendData("ECHO OK\r\n");
         }
 
     }
+#endif
 
 }
 
@@ -109,10 +131,15 @@ void setDisplayTime(const char* time) {
 
     for (int i = 0; i < CONNECTED_BOARDS; i++) {
 
-        boards[i].setTargetRotation(0, numbers[time[0] - '0'][i%3][0][0]);   // Left hour hand
-        boards[i].setTargetRotation(1, numbers[time[0] - '0'][i%3][0][1]);   // Left minutes hand
-        boards[i].setTargetRotation(2, numbers[time[0] - '0'][i%3][1][0]);   // Right hour hand
-        boards[i].setTargetRotation(3, numbers[time[0] - '0'][i%3][1][1]);   // Right minutes hand
+        int timeDigit = (i/3) * 2;
+        #ifndef MASTER
+            timeDigit++;
+        #endif
+
+        boards[i].setTargetRotation(0, numbers[time[timeDigit] - '0'][i%3][0][0]);   // Left hour hand
+        boards[i].setTargetRotation(1, numbers[time[timeDigit] - '0'][i%3][0][1]);   // Left minutes hand
+        boards[i].setTargetRotation(2, numbers[time[timeDigit] - '0'][i%3][1][0]);   // Right hour hand
+        boards[i].setTargetRotation(3, numbers[time[timeDigit] - '0'][i%3][1][1]);   // Right minutes hand
 
     }
 

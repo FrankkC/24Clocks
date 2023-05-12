@@ -23,7 +23,6 @@ Step3: Funzionalità per regolare la posizione delle lancette e comunicazione co
 #include "SwitecX12.h"
 #include "ClockPositions.h"
 #include "ClockPins.h"
-#include "wifiManager.h"
 
 const int STEPS = 360 * 12;
 const int RESETPIN = 17;
@@ -57,29 +56,6 @@ void setup() {
 
 void loop() {
 
-    bool allStopped = true;
-
-    for (int i = 0; i < CONNECTED_BOARDS; i++) {
-        boards[i].update();
-        allStopped &= boards[i].allStopped();
-    }
-
-    if (allStopped && countMode) {
-
-        delay(500);
-        if (timer == 9) {
-            timer = 0;
-            delay(1000);
-        } else {
-            timer++;
-        }
-        char time[4];
-
-        sprintf (time, "%d0%d0", timer, timer);
-        setDisplayTime(time);
-        
-    }
-
     handleMasterCommand();
 
 }
@@ -90,7 +66,7 @@ void handleMasterCommand() {
         delay(1);
         if (MASTER_SLAVE_SERIAL.available() > 0) {
             char c = MASTER_SLAVE_SERIAL.read();
-            if(c == '\n') {
+            if(c == ';') {
                 commandBufferReady = true;
             } else {
                 commandBuffer += c;

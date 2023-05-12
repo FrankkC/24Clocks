@@ -1,6 +1,7 @@
 
 #include <Arduino.h>
 #include "WifiManager.h"
+#include "serialLink.h"
 
 WifiManager::WifiManager() {}
 
@@ -17,7 +18,7 @@ void WifiManager::init() {
     }
 
     if (success) {
-        MASTER_SLAVE_SERIAL.println("Ready >");
+        SerialLink::sendLog("Ready >");
     }
   
 }

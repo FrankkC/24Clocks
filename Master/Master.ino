@@ -24,6 +24,7 @@ Step3: Funzionalità per regolare la posizione delle lancette e comunicazione co
 #include "ClockPositions.h"
 #include "ClockPins.h"
 #include "wifiManager.h"
+#include "serialLink.h"
 
 const int STEPS = 360 * 12;
 const int RESETPIN = 17;
@@ -39,7 +40,8 @@ bool countMode = false;
 
 void setup() {
 
-    MASTER_SLAVE_SERIAL.begin(115200);
+    SerialLink::init();
+
 
     for (int i = 0; i < CONNECTED_BOARDS; i++) {
         addBoard(i);
@@ -76,7 +78,7 @@ void loop() {
         
     }
 
-    delay(1000);
+    //delay(1000);
     handleWifiCommand();
 
 }
@@ -88,27 +90,15 @@ void handleWifiCommand() {
     if (command != "") {
 
         if (command.startsWith("\r\n+IPD,")) {
-            //serialMonitor("Got data from telnet: " + String(command));
+            //SerialLink::sendLog("Got data from telnet: " + String(command));
         }
 
         if (command.indexOf("SETTIME=") != -1) {
             String newTime = command.substring(command.indexOf("TIME=") + 5, command.indexOf("TIME=") + 9);
-            //serialMonitor("Time to set: " + String(newTime));
             setDisplayTime(newTime.c_str());
             WifiManager::sendData("SET TIME OK\r\n");
         } else if (command.indexOf("SETHOME") != -1) {
-            
-            //serialMonitor("Going home...");
-
-            for (int i = 0; i < CONNECTED_BOARDS; i++) {
-
-                boards[i].setTargetRotation(0, 0);   // Left hour hand
-                boards[i].setTargetRotation(1, 0);   // Left minutes hand
-                boards[i].setTargetRotation(2, 0);   // Right hour hand
-                boards[i].setTargetRotation(3, 0);   // Right minutes hand
-
-            }
-
+            setHome();
             WifiManager::sendData("SET HOME OK\r\n");
         } else if (command.indexOf("SETZERO") != -1) {
             setDisplayTime("0000");
@@ -120,16 +110,11 @@ void handleWifiCommand() {
             countMode = false;
             WifiManager::sendData("SET COUNT MODE OFF OK\r\n");
         } else if (command.indexOf("ECHO") != -1) {
-            countMode = true;
             WifiManager::sendData("ECHO OK\r\n");
         }
 
     }
 
-}
-
-void serialMonitor(const String &s) {
-    MASTER_SLAVE_SERIAL.println(s+'\n');
 }
 
 void addBoard(char boardIndex) {
@@ -148,10 +133,7 @@ void addBoard(char boardIndex) {
 
 }
 
-void setDisplayTime(const char* time) {
-
-    serialMonitor("setDisplayTime: " + String(time));
-
+void setLocalDisplayTime(const char* time) {
     for (int i = 0; i < CONNECTED_BOARDS; i++) {
 
         int timeDigit = (i/3) * 2 + slaveOffset;
@@ -162,6 +144,28 @@ void setDisplayTime(const char* time) {
         boards[i].setTargetRotation(3, numbers[time[timeDigit] - '0'][i%3][1][1]);   // Right minutes hand
 
     }
-
 }
 
+void setLocalHome() {
+    for (int i = 0; i < CONNECTED_BOARDS; i++) {
+
+        boards[i].setTargetRotation(0, 0);   // Left hour hand
+        boards[i].setTargetRotation(1, 0);   // Left minutes hand
+        boards[i].setTargetRotation(2, 0);   // Right hour hand
+        boards[i].setTargetRotation(3, 0);   // Right minutes hand
+
+    }
+}
+
+
+void setDisplayTime(const char* time) {
+    SerialLink::sendLog("setDisplayTime: " + String(time));
+    SerialLink::sendCommand("SETTIME=" + String(time));
+    setLocalDisplayTime(time);
+}
+
+void setHome() {
+    SerialLink::sendLog("Going home...");
+    SerialLink::sendCommand("SETHOME");
+    setLocalHome();
+}

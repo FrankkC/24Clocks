@@ -3,8 +3,7 @@
 #include <Arduino.h>
 
 #define TIMEOUT 10000 // mS
-#define MASTER_SLAVE_SERIAL Serial
-#define WIFI_SERIAL Serial3
+#define WIFI_SERIAL Serial
 
 class WifiManager {
 

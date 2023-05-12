@@ -18,8 +18,8 @@ void WifiManager::init() {
     }
 
     if (success) {
-        Serial.println("Ready.");
-        Serial.println(">");
+        //Serial.println("Ready.");
+        //Serial.println(">");
     }
   
 }
@@ -44,7 +44,7 @@ bool WifiManager::echoFind(String ok, String error) {
     while (millis() < deadline) {
         if (Serial3.available()) {
             char ch = Serial3.read();
-            //Serial.write(ch);
+            Serial.write(ch);
 
             if (ok != "") {
                 if (ch == ok[ok_current_char]) {
@@ -84,7 +84,7 @@ bool WifiManager::initWifi() {
 
     bool success = true;
 
-    Serial.print("Initializing WiFi");
+    //Serial.print("Initializing WiFi");
 
 
     // Non sempre il reset esce in ready. Rimane appeso e va in timeout.
@@ -98,28 +98,35 @@ bool WifiManager::initWifi() {
 
     success &= sendCommand("AT+CWMODE=1","OK","ERROR");
     if (success) {
-        Serial.print(".");
+        //Serial.print(".");
+    } else {
+        return false;
+    }
+
+    success &= sendCommand("AT+CWLAP","OK","ERROR");
+    if (success) {
+        //Serial.print(".");
     } else {
         return false;
     }
 
     success &= sendCommand("AT+CWJAP=\"MY_WIFI_SSID\",\"***REDACTED***\"","OK");
     if (success) {
-        Serial.print(".");
+        //Serial.print(".");
     } else {
         return false;
     }
 
     success &= sendCommand("AT+CIFSR", "OK");
     if (success) {
-        Serial.print(".");
+        //Serial.print(".");
     } else {
         return false;
     }
 
     success &= sendCommand("AT+CIPMUX=1","OK");
     if (success) {
-        Serial.println(".");
+        //Serial.println(".");
         return true;
     } else {
         return false;
@@ -129,11 +136,11 @@ bool WifiManager::initWifi() {
 
 bool WifiManager::initServer() {
 
-    Serial.print("Initializing Server");
+    //Serial.print("Initializing Server");
 
     bool success = sendCommand("AT+CIPSERVER=1,80","OK");
     if (success) {
-        Serial.println(".");
+        //Serial.println(".");
         return true;
     } else {
         return false;
@@ -141,4 +148,14 @@ bool WifiManager::initServer() {
 
 }
 
+String WifiManager::readCommand() {
 
+    String incomingString = "";
+
+    while (Serial3.available()) {
+        incomingString = Serial3.readString();
+    }
+
+    return incomingString;
+
+}

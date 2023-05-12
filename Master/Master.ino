@@ -1,3 +1,24 @@
+// Serial0 e Serial3 disponibili
+// Serial1 occupata da collegamento board
+// Serial2 RX occupato da pin reset
+
+/*
+MASTER:
+Serial --> WIFI
+Serial3 --> Slave
+
+SLAVE:
+Serial --> Serial Monitor
+Serial3 --> Master
+*/
+
+/*
+TODO:
+Step1: Collegamento MASTER<->SLAVE Usiamo Serial per comunicare con Slave e trasferiamo il serial monitor di Master a Slave
+Step2: Fix bug Rotazione lancetta tra 2 e 3 alla sesta (settima) iterazione del counter
+Step3: Funzionalità per regolare la posizione delle lancette e comunicazione con WiFi e App Android
+*/
+
 #include <Arduino.h>
 #include "SwitecX12.h"
 #include "ClockPositions.h"
@@ -9,19 +30,8 @@ const int RESETPIN = 17;
 
 
 constexpr int CONNECTED_BOARDS = 6;
-#define MASTER
-//#define SLAVE
 
-#ifdef MASTER
-#define USE_WIFI
-#define MASTER_MONITOR Serial
-#define MS_SERIAL Serial
-#endif
-
-#ifdef SLAVE
-#define SLAVE_MONITOR Serial
-#define SM_SERIAL Serial3
-#endif
+int slaveOffset = 0;
 
 SwitecX12 boards[CONNECTED_BOARDS];
 int timer = 0;
@@ -29,15 +39,7 @@ bool countMode = false;
 
 void setup() {
 
-    // Used in Master to connect to Slave
-    // Used in Slave for the serial monitor
-#ifdef MASTER
-    MS_SERIAL.begin(115200);
-#endif
-#ifdef SLAVE
-    SM_SERIAL.begin(115200);
-    SLAVE_MONITOR.begin(115200);
-#endif
+    MASTER_SLAVE_SERIAL.begin(115200);
 
     for (int i = 0; i < CONNECTED_BOARDS; i++) {
         addBoard(i);
@@ -45,11 +47,7 @@ void setup() {
     
     digitalWrite(RESETPIN, HIGH);
 
-    //Serial.println("Set now hands to 0°");
-    //delay(5000);
-#ifdef USE_WIFI
     WifiManager::init();
-#endif
 
 }
 
@@ -78,24 +76,29 @@ void loop() {
         
     }
 
-#ifdef USE_WIFI
+    delay(1000);
+    handleWifiCommand();
 
-    String command = "";
+}
 
-    if (command = WifiManager::readCommand() != "") {
+void handleWifiCommand() {
+
+    String command = WifiManager::readCommand();
+
+    if (command != "") {
 
         if (command.startsWith("\r\n+IPD,")) {
-            //Serial.println("Got data from telnet: " + command);
+            //serialMonitor("Got data from telnet: " + String(command));
         }
 
         if (command.indexOf("SETTIME=") != -1) {
             String newTime = command.substring(command.indexOf("TIME=") + 5, command.indexOf("TIME=") + 9);
-            //Serial.println("Time to set: " + newTime);
+            //serialMonitor("Time to set: " + String(newTime));
             setDisplayTime(newTime.c_str());
             WifiManager::sendData("SET TIME OK\r\n");
         } else if (command.indexOf("SETHOME") != -1) {
             
-            //Serial.println("Going home...");
+            //serialMonitor("Going home...");
 
             for (int i = 0; i < CONNECTED_BOARDS; i++) {
 
@@ -123,26 +126,10 @@ void loop() {
 
     }
 
-#endif
+}
 
-#ifdef SLAVE
-    String incomingString = "";
-    bool stringReady = false;
-
-    while (Serial2.available()) {
-        incomingString = Serial2.readString();
-        stringReady = true;
-    }
-
-    if (stringReady) {
-
-        if (incomingString.indexOf("AAAAA") != -1) {
-
-        }
-
-    }
-#endif
-
+void serialMonitor(const String &s) {
+    MASTER_SLAVE_SERIAL.println(s+'\n');
 }
 
 void addBoard(char boardIndex) {
@@ -163,15 +150,11 @@ void addBoard(char boardIndex) {
 
 void setDisplayTime(const char* time) {
 
-    //Serial.print("setDisplayTime: ");
-    //Serial.println(time);
+    serialMonitor("setDisplayTime: " + String(time));
 
     for (int i = 0; i < CONNECTED_BOARDS; i++) {
 
-        int timeDigit = (i/3) * 2;
-        #ifdef SLAVE
-            timeDigit++;
-        #endif
+        int timeDigit = (i/3) * 2 + slaveOffset;
 
         boards[i].setTargetRotation(0, numbers[time[timeDigit] - '0'][i%3][0][0]);   // Left hour hand
         boards[i].setTargetRotation(1, numbers[time[timeDigit] - '0'][i%3][0][1]);   // Left minutes hand

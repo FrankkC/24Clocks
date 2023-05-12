@@ -11,6 +11,7 @@ class WifiManager {
         WifiManager();
         static void init();
         static void sendData(String str);
+        static String readCommand();
 
     private:
 

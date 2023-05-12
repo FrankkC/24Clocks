@@ -5,11 +5,23 @@
 #include "wifiManager.h"
 
 const int STEPS = 360 * 12;
-const int RESET = 17;
+const int RESETPIN = 17;
 
 
 constexpr int CONNECTED_BOARDS = 6;
 #define MASTER
+//#define SLAVE
+
+#ifdef MASTER
+#define USE_WIFI
+#define MASTER_MONITOR Serial
+#define MS_SERIAL Serial
+#endif
+
+#ifdef SLAVE
+#define SLAVE_MONITOR Serial
+#define SM_SERIAL Serial3
+#endif
 
 SwitecX12 boards[CONNECTED_BOARDS];
 int timer = 0;
@@ -17,17 +29,25 @@ bool countMode = false;
 
 void setup() {
 
-    Serial.begin(115200);
+    // Used in Master to connect to Slave
+    // Used in Slave for the serial monitor
+#ifdef MASTER
+    MS_SERIAL.begin(115200);
+#endif
+#ifdef SLAVE
+    SM_SERIAL.begin(115200);
+    SLAVE_MONITOR.begin(115200);
+#endif
 
     for (int i = 0; i < CONNECTED_BOARDS; i++) {
         addBoard(i);
     }
     
-    digitalWrite(RESET, HIGH);
+    digitalWrite(RESETPIN, HIGH);
 
     //Serial.println("Set now hands to 0°");
     //delay(5000);
-#ifdef MASTER
+#ifdef USE_WIFI
     WifiManager::init();
 #endif
 
@@ -47,7 +67,7 @@ void loop() {
         delay(500);
         if (timer == 9) {
             timer = 0;
-            delay(1000);          
+            delay(1000);
         } else {
             timer++;
         }
@@ -58,28 +78,24 @@ void loop() {
         
     }
 
-#ifdef MASTER
-    String incomingString = "";
-    bool stringReady = false;
+#ifdef USE_WIFI
 
-    while (Serial3.available()) {
-        incomingString = Serial3.readString();
-        stringReady = true;
-    }
+    String command = "";
 
-    if (stringReady) {
-        if (incomingString.startsWith("\r\n+IPD,")) {
-            Serial.println("Got data from telnet: " + incomingString);
+    if (command = WifiManager::readCommand() != "") {
+
+        if (command.startsWith("\r\n+IPD,")) {
+            //Serial.println("Got data from telnet: " + command);
         }
 
-        if (incomingString.indexOf("SETTIME=") != -1) {
-            String newTime = incomingString.substring(incomingString.indexOf("TIME=") + 5, incomingString.indexOf("TIME=") + 9);
-            Serial.println("Time to set: " + newTime);
+        if (command.indexOf("SETTIME=") != -1) {
+            String newTime = command.substring(command.indexOf("TIME=") + 5, command.indexOf("TIME=") + 9);
+            //Serial.println("Time to set: " + newTime);
             setDisplayTime(newTime.c_str());
             WifiManager::sendData("SET TIME OK\r\n");
-        } else if (incomingString.indexOf("SETHOME") != -1) {
+        } else if (command.indexOf("SETHOME") != -1) {
             
-            Serial.println("Going home...");
+            //Serial.println("Going home...");
 
             for (int i = 0; i < CONNECTED_BOARDS; i++) {
 
@@ -91,16 +107,37 @@ void loop() {
             }
 
             WifiManager::sendData("SET HOME OK\r\n");
-        } else if (incomingString.indexOf("SETZERO") != -1) {
-            WifiManager::sendData("SET ZERO OK (not implemented)\r\n");
-        } else if (incomingString.indexOf("SETCOUNT=1") != -1) {
-            countMode = 1;
+        } else if (command.indexOf("SETZERO") != -1) {
+            setDisplayTime("0000");
+            WifiManager::sendData("SET ZERO OK\r\n");
+        } else if (command.indexOf("SETCOUNT=1") != -1) {
+            countMode = true;
             WifiManager::sendData("SET COUNT MODE ON OK\r\n");
-        } else if (incomingString.indexOf("SETCOUNT=0") != -1) {
-            countMode = 0;
+        } else if (command.indexOf("SETCOUNT=0") != -1) {
+            countMode = false;
             WifiManager::sendData("SET COUNT MODE OFF OK\r\n");
-        } else if (incomingString.indexOf("ECHO") != -1) {
+        } else if (command.indexOf("ECHO") != -1) {
+            countMode = true;
             WifiManager::sendData("ECHO OK\r\n");
+        }
+
+    }
+
+#endif
+
+#ifdef SLAVE
+    String incomingString = "";
+    bool stringReady = false;
+
+    while (Serial2.available()) {
+        incomingString = Serial2.readString();
+        stringReady = true;
+    }
+
+    if (stringReady) {
+
+        if (incomingString.indexOf("AAAAA") != -1) {
+
         }
 
     }
@@ -126,13 +163,13 @@ void addBoard(char boardIndex) {
 
 void setDisplayTime(const char* time) {
 
-    Serial.print("setDisplayTime: ");
-    Serial.println(time);
+    //Serial.print("setDisplayTime: ");
+    //Serial.println(time);
 
     for (int i = 0; i < CONNECTED_BOARDS; i++) {
 
         int timeDigit = (i/3) * 2;
-        #ifndef MASTER
+        #ifdef SLAVE
             timeDigit++;
         #endif
 

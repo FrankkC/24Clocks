@@ -30,11 +30,13 @@ const int RESETPIN = 17;
 
 
 constexpr int CONNECTED_BOARDS = 6;
-#define SLAVE
+
+String commandBuffer;
+bool commandBufferReady = false;
 int slaveOffset = 1;
 
-#define SLAVE_MONITOR Serial
-#define SM_SERIAL Serial3
+#define SERIAL_MONITOR Serial
+#define MASTER_SLAVE_SERIAL Serial3
 
 SwitecX12 boards[CONNECTED_BOARDS];
 int timer = 0;
@@ -42,9 +44,8 @@ bool countMode = false;
 
 void setup() {
 
-    SM_SERIAL.begin(115200);
-    SLAVE_MONITOR.begin(115200);
-
+    MASTER_SLAVE_SERIAL.begin(115200);
+    SERIAL_MONITOR.begin(115200);
 
     for (int i = 0; i < CONNECTED_BOARDS; i++) {
         addBoard(i);
@@ -79,22 +80,34 @@ void loop() {
         
     }
 
-    String incomingString = "";
-    bool stringReady = false;
+    handleMasterCommand();
 
-    while (Serial2.available()) {
-        incomingString = Serial2.readString();
-        stringReady = true;
-    }
+}
 
-    if (stringReady) {
+void handleMasterCommand() {
 
-        if (incomingString.indexOf("AAAAA") != -1) {
-
+    while (MASTER_SLAVE_SERIAL.available()) {
+        delay(1);
+        if (MASTER_SLAVE_SERIAL.available() > 0) {
+            char c = MASTER_SLAVE_SERIAL.read();
+            if(c == '\n') {
+                commandBufferReady = true;
+            } else {
+                commandBuffer += c;
+            }
         }
-
     }
 
+    if (commandBufferReady) {
+        serialMonitor(commandBuffer);
+        commandBufferReady = false;
+        commandBuffer = "";
+    }
+
+}
+
+void serialMonitor(const String &s) {
+    SERIAL_MONITOR.println(s);
 }
 
 void addBoard(char boardIndex) {
@@ -115,8 +128,7 @@ void addBoard(char boardIndex) {
 
 void setDisplayTime(const char* time) {
 
-    //Serial.print("setDisplayTime: ");
-    //Serial.println(time);
+    serialMonitor("setDisplayTime: " + String(time));
 
     for (int i = 0; i < CONNECTED_BOARDS; i++) {
 

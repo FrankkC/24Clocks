@@ -40,20 +40,34 @@ bool countMode = false;
 
 void setup() {
 
-    SerialLink::init();
+    pinMode(RESETPIN, OUTPUT);
+    digitalWrite(RESETPIN, HIGH);
 
+    /*2-13*/
+    for (int i = 2; i < 14; i++) {
+        pinMode(i, OUTPUT);
+        digitalWrite(i, LOW);
+    }
+    /*18-53*/
+    for (int i = 18; i < 54; i++) {
+        pinMode(i, OUTPUT);
+        digitalWrite(i, LOW);
+    }
 
     for (int i = 0; i < CONNECTED_BOARDS; i++) {
         addBoard(i);
     }
-    
-    digitalWrite(RESETPIN, HIGH);
 
+    SerialLink::init();
     WifiManager::init();
 
 }
 
 void loop() {
+
+    if (!countMode && millis() > 10000) {
+        countMode = true;
+    }
 
     bool allStopped = true;
 
@@ -62,20 +76,11 @@ void loop() {
         allStopped &= boards[i].allStopped();
     }
 
-    if (allStopped && countMode) {
-
-        delay(500);
-        if (timer == 9) {
-            timer = 0;
-            delay(1000);
-        } else {
-            timer++;
-        }
+    if (allStopped && countMode && timer != (millis()/1000)%10) {
+        timer = (millis()/1000)%10;
         char time[4];
-
-        sprintf (time, "%d0%d0", timer, timer);
+        sprintf (time, "%d%d%d%d", timer, timer, timer, timer);
         setDisplayTime(time);
-        
     }
 
     //delay(1000);

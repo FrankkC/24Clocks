@@ -1,5 +1,3 @@
-// TODO: Handle OFFSET for the second Arduino.
-
 #define OFFSET_HOURS 0
 #define OFFSET_MINUTES 24
 
@@ -19,7 +17,7 @@
 
 static unsigned short pins[48][3] = { // {DIR, STEP, REVERSED}
     // Board 0
-    {  6, 13, 0},         // HOURS   TENS  TOPLEFT     HOURS_HAND
+    {  6, 13, 0},         // HOURS         TOPLEFT     HOURS_HAND
     {  7, 12, 1},         //                           MINUTES_HAND
     {  8, 11, 1},         //               TOPRIGHT    HOURS_HAND
     {  9, 10, 0},         //                           MINUTES_HAND
@@ -35,7 +33,7 @@ static unsigned short pins[48][3] = { // {DIR, STEP, REVERSED}
     { 26, 25, 0},         //                           MINUTES_HAND
 
     // Board 3
-    { 30, 37, 0},         // MINUTES  TENS TOPLEFT     HOURS_HAND
+    { 30, 37, 0},         // MINUTES       TOPLEFT     HOURS_HAND
     { 31, 36, 1},         //                           MINUTES_HAND
     { 32, 35, 1},         //               TOPRIGHT    HOURS_HAND
     { 33, 34, 0},         //                           MINUTES_HAND
@@ -48,37 +46,7 @@ static unsigned short pins[48][3] = { // {DIR, STEP, REVERSED}
     { 46, 50, 0},         //               BOTTOMLEFT  HOURS_HAND
     { 47, 51, 1},         //                           MINUTES_HAND
     { 48, 52, 1},         //               BOTTOMRIGHT HOURS_HAND
-    { 49, 53, 0},         //                           MINUTES_HAND
+    { 49, 53, 0}          //                           MINUTES_HAND
 
-    // Board 6
-    { 0, 0, 0},         //         UNITS TOPLEFT     HOURS_HAND
-    { 0, 0, 0},         //                           MINUTES_HAND
-    { 0, 0, 0},         //               TOPRIGHT    HOURS_HAND
-    { 0, 0, 0},         //                           MINUTES_HAND
-    // Board 7
-    { 0, 0, 0},         //               MIDDLELEFT  HOURS_HAND
-    { 0, 0, 0},         //                           MINUTES_HAND
-    { 0, 0, 0},         //               MIDDLERIGHT HOURS_HAND
-    { 0, 0, 0},         //                           MINUTES_HAND
-    // Board 8
-    { 0, 0, 0},         //               BOTTOMLEFT  HOURS_HAND
-    { 0, 0, 0},         //                           MINUTES_HAND
-    { 0, 0, 0},         //               BOTTOMRIGHT HOURS_HAND
-    { 0, 0, 0},         //                           MINUTES_HAND
-
-    // Board 9
-    { 0, 0, 0},         //         UNITS TOPLEFT     HOURS_HAND
-    { 0, 0, 0},         //                           MINUTES_HAND
-    { 0, 0, 0},         //               TOPRIGHT    HOURS_HAND
-    { 0, 0, 0},         //                           MINUTES_HAND
-    // Board 10
-    { 0, 0, 0},         //               MIDDLELEFT  HOURS_HAND
-    { 0, 0, 0},         //                           MINUTES_HAND
-    { 0, 0, 0},         //               MIDDLERIGHT HOURS_HAND
-    { 0, 0, 0},         //                           MINUTES_HAND
-    // Board 11
-    { 0, 0, 0},         //               BOTTOMLEFT  HOURS_HAND
-    { 0, 0, 0},         //                           MINUTES_HAND
-    { 0, 0, 0},         //               BOTTOMRIGHT HOURS_HAND
-    { 0, 0, 0}          //                           MINUTES_HAND
 };
+

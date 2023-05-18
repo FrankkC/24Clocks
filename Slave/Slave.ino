@@ -23,6 +23,7 @@ Step3: Funzionalità per regolare la posizione delle lancette e comunicazione co
 #include "SwitecX12.h"
 #include "ClockPositions.h"
 #include "ClockPins.h"
+#include "serialLink.h"
 
 const int STEPS = 360 * 12;
 const int RESETPIN = 17;
@@ -31,30 +32,46 @@ const int RESETPIN = 17;
 constexpr int CONNECTED_BOARDS = 6;
 
 String commandBuffer;
-bool commandBufferReady = false;
 int slaveOffset = 1;
 
 #define SERIAL_MONITOR Serial
-#define MASTER_SLAVE_SERIAL Serial3
-
 SwitecX12 boards[CONNECTED_BOARDS];
 int timer = 0;
 bool countMode = false;
 
 void setup() {
 
-    MASTER_SLAVE_SERIAL.begin(115200);
-    SERIAL_MONITOR.begin(115200);
+    pinMode(RESETPIN, OUTPUT);
+    digitalWrite(RESETPIN, HIGH);
+
+    /*2-13*/
+    for (int i = 2; i < 14; i++) {
+        pinMode(i, OUTPUT);
+        digitalWrite(i, LOW);
+    }
+    /*18-53*/
+    for (int i = 18; i < 54; i++) {
+        pinMode(i, OUTPUT);
+        digitalWrite(i, LOW);
+    }
 
     for (int i = 0; i < CONNECTED_BOARDS; i++) {
         addBoard(i);
     }
-    
-    digitalWrite(RESETPIN, HIGH);
+
+    SerialLink::init();
+    SERIAL_MONITOR.begin(115200);
 
 }
 
 void loop() {
+
+    bool allStopped = true;
+
+    for (int i = 0; i < CONNECTED_BOARDS; i++) {
+        boards[i].update();
+        allStopped &= boards[i].allStopped();
+    }
 
     handleMasterCommand();
 
@@ -62,22 +79,21 @@ void loop() {
 
 void handleMasterCommand() {
 
-    while (MASTER_SLAVE_SERIAL.available()) {
-        delay(1);
-        if (MASTER_SLAVE_SERIAL.available() > 0) {
-            char c = MASTER_SLAVE_SERIAL.read();
-            if(c == ';') {
-                commandBufferReady = true;
-            } else {
-                commandBuffer += c;
-            }
-        }
-    }
+    if (SerialLink::readCommand(commandBuffer)) {
 
-    if (commandBufferReady) {
-        serialMonitor(commandBuffer);
-        commandBufferReady = false;
+        if (commandBuffer.startsWith("\r\nCMD")) {
+            String command = commandBuffer.substring(5);
+            if (command.startsWith("SETTIME=")) {
+                String newTime = command.substring(8);
+                setLocalDisplayTime(newTime.c_str());
+            }
+
+        } else if (commandBuffer.startsWith("\r\nMON")) {
+            serialMonitor(commandBuffer.substring(5));
+        }
+
         commandBuffer = "";
+
     }
 
 }
@@ -102,10 +118,7 @@ void addBoard(char boardIndex) {
 
 }
 
-void setDisplayTime(const char* time) {
-
-    serialMonitor("setDisplayTime: " + String(time));
-
+void setLocalDisplayTime(const char* time) {
     for (int i = 0; i < CONNECTED_BOARDS; i++) {
 
         int timeDigit = (i/3) * 2 + slaveOffset;
@@ -116,6 +129,17 @@ void setDisplayTime(const char* time) {
         boards[i].setTargetRotation(3, numbers[time[timeDigit] - '0'][i%3][1][1]);   // Right minutes hand
 
     }
-
 }
+
+void setLocalHome() {
+    for (int i = 0; i < CONNECTED_BOARDS; i++) {
+
+        boards[i].setTargetRotation(0, 0);   // Left hour hand
+        boards[i].setTargetRotation(1, 0);   // Left minutes hand
+        boards[i].setTargetRotation(2, 0);   // Right hour hand
+        boards[i].setTargetRotation(3, 0);   // Right minutes hand
+
+    }
+}
+
 

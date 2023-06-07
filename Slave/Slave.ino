@@ -86,6 +86,8 @@ void handleMasterCommand() {
             if (command.startsWith("SETTIME=")) {
                 String newTime = command.substring(8);
                 setLocalDisplayTime(newTime.c_str());
+            } else if (command.startsWith("SETHOME")) {
+                setLocalHome();
             }
 
         } else if (commandBuffer.startsWith("\r\nMON")) {

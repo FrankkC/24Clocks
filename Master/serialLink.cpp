@@ -6,6 +6,7 @@ SerialLink::SerialLink() {}
 
 void SerialLink::init() {
     MASTER_SLAVE_SERIAL.begin(115200);
+    sendLog("Hello Slave!");
 }
 
 void SerialLink::sendLog(const String &s) {

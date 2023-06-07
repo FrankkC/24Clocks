@@ -83,6 +83,8 @@ void WifiManager::sendData(String str) {
 
 bool WifiManager::initWifi() {
 
+    SerialLink::sendLog("WifiManager::initWifi()");
+
     bool success = true;
 
     //MASTER_SLAVE_SERIAL.print("Initializing WiFi");
@@ -136,6 +138,8 @@ bool WifiManager::initWifi() {
 }
 
 bool WifiManager::initServer() {
+
+    SerialLink::sendLog("WifiManager::initServer()");
 
     //MASTER_SLAVE_SERIAL.print("Initializing Server");
 

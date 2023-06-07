@@ -37,6 +37,11 @@ int slaveOffset = 0;
 SwitecX12 boards[CONNECTED_BOARDS];
 int timer = 0;
 bool countMode = false;
+// TODO: Gestire il cambio di modalità
+bool timeMode = false;
+
+int32_t timeOffset = 0;
+int minutesSinceMidnight = 0;
 
 void setup() {
 
@@ -65,9 +70,9 @@ void setup() {
 
 void loop() {
 
-    if (!countMode && millis() > 10000) {
+    /*if (!countMode && millis() > 10000) {
         countMode = true;
-    }
+    }*/
 
     bool allStopped = true;
 
@@ -80,6 +85,19 @@ void loop() {
         timer = (millis()/1000)%10;
         char time[4];
         sprintf (time, "%d%d%d%d", timer, timer, timer, timer);
+        setDisplayTime(time);
+    }
+
+    int newMinutesSinceMidnight = (timeOffset + (millis()/1000)%86400)/60;
+    if (allStopped && timeMode && newMinutesSinceMidnight != minutesSinceMidnight) {
+        minutesSinceMidnight = newMinutesSinceMidnight;
+        setTime(minutesSinceMidnight);
+        // Qui ci vorrebbe uno setDisplayCurrentTime
+        int minutes = minutesSinceMidnight%60;
+        int hours = (minutesSinceMidnight-minutes)/60;
+
+        char time[4];
+        sprintf (time, "%02d%02d", hours, minutes);
         setDisplayTime(time);
     }
 
@@ -100,15 +118,35 @@ void handleWifiCommand() {
 
         if (command.indexOf("SETTIME=") != -1) {
             String newTime = command.substring(command.indexOf("TIME=") + 5, command.indexOf("TIME=") + 9);
-            setDisplayTime(newTime.c_str());
+
+            // Converto il time in secondi dalla mezzanotte
+            int32_t tempIntTime = atoi(newTime.c_str());
+            int32_t minutes = tempIntTime % 100;
+            int32_t hours = (tempIntTime - minutes) / 100;
+            int32_t newTimeInSeconds = minutes * 60 + hours * 60 * 60;
+
+            // Sottraggo i secondi dall'accensione%24oreInSecondi
+            // setto timeoffset a questo valore in secondi
+            timeOffset = newTimeInSeconds - (millis()/1000)%86400;
+
+            // metto timeMode = true in modo da avviare l'update della posizione delle lancette
+            timeMode = true;
+            countMode = false;
+
+            //setDisplayTime(newTime.c_str());
             WifiManager::sendData("SET TIME OK\r\n");
         } else if (command.indexOf("SETHOME") != -1) {
+            timeMode = false;
+            countMode = false;
             setHome();
             WifiManager::sendData("SET HOME OK\r\n");
         } else if (command.indexOf("SETZERO") != -1) {
+            timeMode = false;
+            countMode = false;
             setDisplayTime("0000");
             WifiManager::sendData("SET ZERO OK\r\n");
         } else if (command.indexOf("SETCOUNT=1") != -1) {
+            timeMode = false;
             countMode = true;
             WifiManager::sendData("SET COUNT MODE ON OK\r\n");
         } else if (command.indexOf("SETCOUNT=0") != -1) {
@@ -120,6 +158,16 @@ void handleWifiCommand() {
 
     }
 
+}
+
+void setTime(int32_t minutesSinceMidnight) {
+    // timeOffset è la differenza tra il tempo che vogliamo impostare e quanto riportato da millis().
+    // il modulo 86400 serve a riportare millis() a un valore compreso in una giornata (se il dispositivo è acceso da più di 24h)
+    timeOffset = minutesSinceMidnight * 60 - (millis()/1000)%86400;
+}
+
+int getTime() {
+    return timeOffset + (millis()/1000)%86400;
 }
 
 void addBoard(char boardIndex) {

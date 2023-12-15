@@ -1,166 +1,84 @@
-
 #include <Arduino.h>
 #include "WifiManager.h"
-#include "serialLink.h"
+//#include "serialLink.h"
+
+const char* ssid = "MY_WIFI_SSID";
+const char* password = "***REDACTED***";
+
+WiFiServer server(80);
+WiFiClient client;
+bool alreadyConnected = false;
 
 WifiManager::WifiManager() {}
 
 void WifiManager::init() {
 
-    WIFI_SERIAL.begin(115200);
-
-    bool success = true;
-    
-    success &= initWifi();
-
-    if (success) {
-        success &= initServer();
-    }
-
-    if (success) {
-        SerialLink::sendLog("Ready >");
-    }
+    initWifi();
+    initServer();
   
 }
 
-bool WifiManager::sendCommand(String cmd, String ack = "", String error = "") {
-    WIFI_SERIAL.println(cmd); // Send "AT+" command to module
-    return echoFind(ack, error);
+void WifiManager::sendData(String data) {
+
+    if (client) {
+        Serial.println("sendData: " + data);
+        client.println(data);
+    }
+
+    /*WIFI_SERIAL.println(cmd); // Send "AT+" command to module
+    return echoFind(ack, error);*/
 }
 
-bool WifiManager::echoFind(String ok, String error) {
-  
-    if (ok == "" && error == "")
-        return true;
+void WifiManager::initWifi() {
 
-    byte ok_current_char = 0;
-    byte ok_length = ok.length();
+    Serial.println("WifiManager::initWifi()");
 
-    byte error_current_char = 0;
-    byte error_length = error.length();
+    WiFi.mode(WIFI_STA); //Optional
+    WiFi.begin(ssid, password);
+    Serial.print("Connecting");
 
-    String response;
-
-    long deadline = millis() + TIMEOUT;
-    while (millis() < deadline) {
-        if (WIFI_SERIAL.available()) {
-            char ch = WIFI_SERIAL.read();
-            //MASTER_SLAVE_SERIAL.write(ch);
-
-            if (ok != "") {
-                if (ch == ok[ok_current_char]) {
-                    if (++ok_current_char == ok_length) {
-                        //MASTER_SLAVE_SERIAL.println();
-                        return true;
-                    }
-                } else {
-                    ok_current_char = 0;
-                }
-            }
- 
-            if (error != "") {
-                if (ch == error[error_current_char]) {
-                    if (++error_current_char == error_length) {
-                        //MASTER_SLAVE_SERIAL.println();
-                        return false;
-                    }
-                } else {
-                    error_current_char = 0;
-                }
-            }
-
-        }
-    }
-    return false; // Timed out
-}
-
-void WifiManager::sendData(String str) {
-    String len = "";
-    len += str.length();
-    sendCommand("AT+CIPSEND=0," + len, "OK"); // Setup   command to send str data length to channel 0
-    sendCommand(str, "OK"); //Send   String str with 0 closing the transmission and return to AT mode
-}
-
-bool WifiManager::initWifi() {
-
-    SerialLink::sendLog("WifiManager::initWifi()");
-
-    bool success = true;
-
-    //MASTER_SLAVE_SERIAL.print("Initializing WiFi");
-
-
-    // Non sempre il reset esce in ready. Rimane appeso e va in timeout.
-    // Per ora lo disattivo.
-    // success &= sendCommand("AT+RST", "Technology");
-    // MASTER_SLAVE_SERIAL.println("Success:");
-    // MASTER_SLAVE_SERIAL.println(success);
-
-    // Controllare il funzionamento di echoFind
-    // Implementare controllo errore in echoFind
-
-    success &= sendCommand("AT+CWMODE=1","OK","ERROR");
-    if (success) {
-        //MASTER_SLAVE_SERIAL.print(".");
-    } else {
-        return false;
+    while(WiFi.status() != WL_CONNECTED){
+        Serial.print(".");
+        delay(100);
     }
 
-    success &= sendCommand("AT+CWLAP","OK","ERROR");
-    if (success) {
-        //MASTER_SLAVE_SERIAL.print(".");
-    } else {
-        return false;
-    }
-
-    success &= sendCommand("AT+CWJAP=\"MY_WIFI_SSID\",\"***REDACTED***\"","OK");
-    if (success) {
-        //MASTER_SLAVE_SERIAL.print(".");
-    } else {
-        return false;
-    }
-
-    success &= sendCommand("AT+CIFSR", "OK");
-    if (success) {
-        //MASTER_SLAVE_SERIAL.print(".");
-    } else {
-        return false;
-    }
-
-    success &= sendCommand("AT+CIPMUX=1","OK");
-    if (success) {
-        //MASTER_SLAVE_SERIAL.println(".");
-        return true;
-    } else {
-        return false;
-    }
+    Serial.println("\nConnected to the WiFi network");
+    Serial.print("Local ESP32 IP: ");
+    Serial.println(WiFi.localIP());
 
 }
 
-bool WifiManager::initServer() {
-
-    SerialLink::sendLog("WifiManager::initServer()");
-
-    //MASTER_SLAVE_SERIAL.print("Initializing Server");
-
-    bool success = sendCommand("AT+CIPSERVER=1,80","OK");
-    if (success) {
-        //MASTER_SLAVE_SERIAL.println(".");
-        return true;
-    } else {
-        return false;
-    }
-
+void WifiManager::initServer() {
+    Serial.println("WifiManager::initServer()");
+    server.begin();
 }
 
 String WifiManager::readCommand() {
 
-    String incomingString = "";
+    String command = "";
 
-    while (WIFI_SERIAL.available()) {
-        incomingString = WIFI_SERIAL.readString();
+    if (!client)
+        client = server.available();  // Listen for incoming clients
+
+    if (client) {                   // if client connected
+        if (!alreadyConnected) {
+            // clead out the input buffer:
+            client.flush();
+            Serial.println("We have a new client");
+            alreadyConnected = true;
+        }
+        // if data available from client read and display it
+        int length;
+        if ((length = client.available()) > 0) {
+            //str = client.readStringUntil('\n');  // read entire response
+            Serial.printf("Received length %d\n", length);
+            char commandChar;
+            while (client.available())
+                if ((commandChar = (char)client.read()) != '\n')
+                    command += commandChar;
+        }
     }
-
-    return incomingString;
+    
+    return command;
 
 }

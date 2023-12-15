@@ -1,12 +1,22 @@
 
 #include <Arduino.h>
 #include "serialLink.h"
+#include <HardwareSerial.h>
+
+#define RXD1 18
+#define TXD1 19
+
+#define RXD2 16
+#define TXD2 17
+
+HardwareSerial SerialSlave1(1);
+HardwareSerial SerialSlave2(2);
 
 SerialLink::SerialLink() {}
 
 void SerialLink::init() {
-    MASTER_SLAVE_SERIAL.begin(115200);
-    sendLog("Hello Slave!");
+    SerialSlave1.begin(115200, SERIAL_8N1, RXD1, TXD1);
+    SerialSlave2.begin(115200, SERIAL_8N1, RXD2, TXD2);
 }
 
 void SerialLink::sendLog(const String &s) {
@@ -18,15 +28,15 @@ void SerialLink::sendCommand(const String &s) {
 }
 
 void SerialLink::sendData(const String &s) {
-    MASTER_SLAVE_SERIAL.println(s);
+    SerialSlave2.println(s);
 }
 
 bool SerialLink::readCommand(String& commandBuffer) {
 
-    while (MASTER_SLAVE_SERIAL.available()) {
+    while (SerialSlave2.available()) {
         delay(1);
-        if (MASTER_SLAVE_SERIAL.available() > 0) {
-            char c = MASTER_SLAVE_SERIAL.read();
+        if (SerialSlave2.available() > 0) {
+            char c = SerialSlave2.read();
             if(c == ';') {
                 // Warning: se ci fosse un comando accodato verrebbe perso o ricevuto troncato. Può succedere?
                 return true;

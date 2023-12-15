@@ -2,7 +2,7 @@
 #define serialLink_h
 #include <Arduino.h>
 
-#define MASTER_SLAVE_SERIAL Serial3
+#define MASTER Serial3
 
 class SerialLink {
 

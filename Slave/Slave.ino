@@ -3,10 +3,6 @@
 // Serial2 RX occupato da pin reset
 
 /*
-MASTER:
-Serial --> WIFI
-Serial3 --> Slave
-
 SLAVE:
 Serial --> Serial Monitor
 Serial3 --> Master
@@ -14,7 +10,6 @@ Serial3 --> Master
 
 /*
 TODO:
-Step1: Collegamento MASTER<->SLAVE Usiamo Serial per comunicare con Slave e trasferiamo il serial monitor di Master a Slave
 Step2: Fix bug Rotazione lancetta tra 2 e 3 alla sesta (settima) iterazione del counter
 Step3: Funzionalità per regolare la posizione delle lancette e comunicazione con WiFi e App Android
 */
@@ -32,6 +27,7 @@ const int RESETPIN = 17;
 constexpr int CONNECTED_BOARDS = 6;
 
 String commandBuffer;
+// 
 int slaveOffset = 1;
 
 #define SERIAL_MONITOR Serial
@@ -40,6 +36,10 @@ int timer = 0;
 bool countMode = false;
 
 void setup() {
+
+    SERIAL_MONITOR.begin(115200);
+    delay(1000);
+    SERIAL_MONITOR.println("Launching Slave");
 
     pinMode(RESETPIN, OUTPUT);
     digitalWrite(RESETPIN, HIGH);
@@ -81,7 +81,9 @@ void handleMasterCommand() {
 
     if (SerialLink::readCommand(commandBuffer)) {
 
-        if (commandBuffer.startsWith("\r\nCMD")) {
+        SERIAL_MONITOR.println(commandBuffer);
+
+        /*if (commandBuffer.startsWith("\r\nCMD")) {
             String command = commandBuffer.substring(5);
             if (command.startsWith("SETTIME=")) {
                 String newTime = command.substring(8);
@@ -91,17 +93,13 @@ void handleMasterCommand() {
             }
 
         } else if (commandBuffer.startsWith("\r\nMON")) {
-            serialMonitor(commandBuffer.substring(5));
-        }
+            SERIAL_MONITOR.println(commandBuffer.substring(5));
+        }*/
 
         commandBuffer = "";
 
     }
 
-}
-
-void serialMonitor(const String &s) {
-    SERIAL_MONITOR.println(s);
 }
 
 void addBoard(char boardIndex) {

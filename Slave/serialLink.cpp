@@ -5,7 +5,7 @@
 SerialLink::SerialLink() {}
 
 void SerialLink::init() {
-    MASTER_SLAVE_SERIAL.begin(115200);
+    MASTER.begin(115200);
 }
 
 void SerialLink::sendLog(const String &s) {
@@ -17,15 +17,15 @@ void SerialLink::sendCommand(const String &s) {
 }
 
 void SerialLink::sendData(const String &s) {
-    MASTER_SLAVE_SERIAL.println(s);
+    MASTER.println(s);
 }
 
 bool SerialLink::readCommand(String& commandBuffer) {
 
-    while (MASTER_SLAVE_SERIAL.available()) {
+    while (MASTER.available()) {
         delay(1);
-        if (MASTER_SLAVE_SERIAL.available() > 0) {
-            char c = MASTER_SLAVE_SERIAL.read();
+        if (MASTER.available() > 0) {
+            char c = MASTER.read();
             if(c == ';') {
                 // Warning: se ci fosse un comando accodato verrebbe perso o ricevuto troncato. Può succedere?
                 return true;

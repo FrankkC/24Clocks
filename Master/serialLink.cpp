@@ -28,6 +28,7 @@ void SerialLink::sendCommand(const String &s) {
 }
 
 void SerialLink::sendData(const String &s) {
+    SerialSlave1.println(s);
     SerialSlave2.println(s);
 }
 

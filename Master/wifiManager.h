@@ -2,12 +2,8 @@
 #define wifiManager_h
 
 #include <Arduino.h>
+#include <WiFi.h>
 
-#if defined(ESP8266)
-  #include <ESP8266WiFi.h>
-#elif defined(ESP32) || defined(ARDUINO_ARCH_RP2040)
-  #include <WiFi.h>
-#endif
 
 #define TIMEOUT 10000 // mS
 

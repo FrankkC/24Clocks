@@ -27,8 +27,9 @@ const int RESETPIN = 17;
 constexpr int CONNECTED_BOARDS = 6;
 
 String commandBuffer;
-// 
-int slaveOffset = 1;
+
+// Should be set to 0 for the left slave and 1 for the right slave
+int slaveOffset = 0;
 
 #define SERIAL_MONITOR Serial
 SwitecX12 boards[CONNECTED_BOARDS];
@@ -81,20 +82,18 @@ void handleMasterCommand() {
 
     if (SerialLink::readCommand(commandBuffer)) {
 
+        commandBuffer.trim();
         SERIAL_MONITOR.println(commandBuffer);
 
-        /*if (commandBuffer.startsWith("\r\nCMD")) {
-            String command = commandBuffer.substring(5);
+        if (commandBuffer.startsWith("CMD")) {
+            String command = commandBuffer.substring(3);
             if (command.startsWith("SETTIME=")) {
                 String newTime = command.substring(8);
                 setLocalDisplayTime(newTime.c_str());
             } else if (command.startsWith("SETHOME")) {
                 setLocalHome();
             }
-
-        } else if (commandBuffer.startsWith("\r\nMON")) {
-            SERIAL_MONITOR.println(commandBuffer.substring(5));
-        }*/
+        }
 
         commandBuffer = "";
 

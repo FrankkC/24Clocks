@@ -36,7 +36,7 @@ String commandBuffer;
 void setup() {
 
     Serial.begin(115200);
-    delay(1000);
+    delay(1);
     Serial.println("Launching Master");
 
     SerialLink::init();
@@ -55,7 +55,7 @@ void loop() {
         char time[4];
         sprintf (time, "%d%d%d%d", timer, timer, timer, timer);
         setDisplayTime(time);
-    }
+    }*/
 
     int newMinutesSinceMidnight = (timeOffset + (millis()/1000)%86400)/60;
     if (timeMode && newMinutesSinceMidnight != minutesSinceMidnight) {
@@ -68,7 +68,7 @@ void loop() {
         char time[4];
         sprintf (time, "%02d%02d", hours, minutes);
         setDisplayTime(time);
-    }*/
+    }
 
     handleWifiCommand();
 
@@ -99,7 +99,7 @@ void handleWifiCommand() {
             timeMode = true;
             countMode = false;
 
-            //setDisplayTime(newTime.c_str());
+            setDisplayTime(newTime.c_str());
             WifiManager::sendData("SET TIME OK");
         } else if (command.indexOf("SETHOME") != -1) {
             timeMode = false;

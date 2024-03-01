@@ -73,9 +73,11 @@ String WifiManager::readCommand() {
             //str = client.readStringUntil('\n');  // read entire response
             Serial.printf("Received length %d\n", length);
             char commandChar;
-            while (client.available())
-                if ((commandChar = (char)client.read()) != '\n')
+            while (client.available()) {
+                commandChar = (char)client.read();
+                if (commandChar != '\n' && commandChar != '\r')
                     command += commandChar;
+            }
         }
     }
     

@@ -31,16 +31,13 @@ String commandBuffer;
 // Should be set to 0 for the left slave and 1 for the right slave
 int slaveOffset = 0;
 
-#define SERIAL_MONITOR Serial
 SwitecX12 boards[CONNECTED_BOARDS];
-int timer = 0;
-bool countMode = false;
 
 void setup() {
 
-    SERIAL_MONITOR.begin(115200);
+    Serial.begin(115200);
     delay(1000);
-    SERIAL_MONITOR.println("Launching Slave");
+    Serial.println("Launching Slave");
 
     pinMode(RESETPIN, OUTPUT);
     digitalWrite(RESETPIN, HIGH);
@@ -61,7 +58,6 @@ void setup() {
     }
 
     SerialLink::init();
-    SERIAL_MONITOR.begin(115200);
 
 }
 
@@ -82,8 +78,7 @@ void handleMasterCommand() {
 
     if (SerialLink::readCommand(commandBuffer)) {
 
-        commandBuffer.trim();
-        SERIAL_MONITOR.println(commandBuffer);
+        Serial.println("handleMasterCommand: " + commandBuffer);
 
         if (commandBuffer.startsWith("CMD")) {
             String command = commandBuffer.substring(3);

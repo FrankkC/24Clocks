@@ -50,12 +50,12 @@ void loop() {
         countMode = true;
     }*/
 
-    /*if (countMode && timer != (millis()/1000)%10) {
+    if (countMode && timer != (millis()/1000)%10) {
         timer = (millis()/1000)%10;
-        char time[4];
-        sprintf (time, "%d%d%d%d", timer, timer, timer, timer);
+        char time[5];
+        sprintf (time, "%d%d%d%d\0", timer, timer, timer, timer);
         setDisplayTime(time);
-    }*/
+    }
 
     int newMinutesSinceMidnight = (timeOffset + (millis()/1000)%86400)/60;
     if (timeMode && newMinutesSinceMidnight != minutesSinceMidnight) {
@@ -65,8 +65,8 @@ void loop() {
         int minutes = minutesSinceMidnight%60;
         int hours = (minutesSinceMidnight-minutes)/60;
 
-        char time[4];
-        sprintf (time, "%02d%02d", hours, minutes);
+        char time[5];
+        sprintf (time, "%02d%02d\0", hours, minutes);
         setDisplayTime(time);
     }
 
@@ -138,10 +138,13 @@ int getTime() {
 
 
 void setDisplayTime(const char* time) {
-    // Adesso possiamo usare il Serial Print locale
-    Serial.println("setDisplayTime: " + String(time));
-    // Aggiungere comando per il secondo slave
-    SerialLink::sendCommand("SETTIME=" + String(time));
+
+    Serial.printf("setDisplayTime: %s\n", time);
+
+    char buffer [13];
+    sprintf(buffer, "SETTIME=%s\0", time);
+    SerialLink::sendCommand(buffer);
+    
 }
 
 void setHome() {

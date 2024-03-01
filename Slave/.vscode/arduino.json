@@ -1,5 +1,5 @@
 {
-    "port": "/dev/tty.usbserial-0001",
+    "port": "/dev/tty.usbmodem13101",
     "configuration": "cpu=atmega2560",
     "board": "arduino:avr:mega",
     "includePath": "/Users/francesco/Library/CloudStorage/Dropbox/Arduino/24Clocks/",

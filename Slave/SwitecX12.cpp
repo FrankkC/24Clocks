@@ -41,7 +41,7 @@ SwitecX12::SwitecX12(unsigned int steps, unsigned char pinStep[], unsigned char 
         currentStep[i] = 0;
         targetStep[i] = 0;
 
-    } 
+    }
 
 }
 

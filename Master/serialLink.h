@@ -9,15 +9,15 @@
 class SerialLink {
 
     public:
-
         SerialLink();
         static void init();
-        static void sendLog(const String &s);
-        static void sendCommand(const String &s);
+        static void sendLog(const char* data);
+        static void sendCommand(const char* data);
         static bool readCommand(String& commandBuffer);
 
     private:
-        static void sendData(const String &s);
+        static void sendData(const char* instruction, const char* data);
+        static void sendData(const char* data);
 
 };
 

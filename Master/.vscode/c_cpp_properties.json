@@ -7,16 +7,20 @@
                 "/Users/francesco/Library/Arduino15/packages/esp32/hardware/esp32/2.0.11/cores/esp32/",
                 "/Users/francesco/Library/Arduino15/packages/esp32/hardware/esp32/2.0.11/tools/sdk/esp32/include/**",
                 "/Users/francesco/Library/Arduino15/packages/esp32/hardware/esp32/2.0.11/tools/sdk/esp32/qio_qspi/include/",
-                "/Users/francesco/Library/Arduino15/packages/esp32/hardware/esp32/2.0.11/variants/esp32/"
+                "/Users/francesco/Library/Arduino15/packages/esp32/hardware/esp32/2.0.11/variants/esp32/",
+                "/Users/francesco/Library/Arduino15/packages/esp32/hardware/esp32/2.0.11/cores/esp32",
+                "/Users/francesco/Library/Arduino15/packages/esp32/hardware/esp32/2.0.11/libraries/WiFi/src/"
             ],
-            "forcedInclude": [
-                "/Users/francesco/Library/Arduino15/packages/arduino/hardware/avr/1.8.6/cores/arduino/Arduino.h"
-            ],
+            "browse": {
+                "path": [
+                    "/Users/francesco/Library/Arduino15/packages/esp32/hardware",
+                    "${workspaceFolder}"
+                ],
+                "limitSymbolsToIncludedHeaders": false
+            },
             "defines": [],
-            "macFrameworkPath": [
-                "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks"
-            ],
-            "compilerPath": "/usr/bin/clang",
+            "compilerPath": "/Users/francesco/Library/Arduino15/packages/esp32/tools/xtensa-esp32-elf-gcc/esp-2021r2-patch5-8.4.0/bin/xtensa-esp32-elf-gcc",
+            "compileCommands": "${workspaceFolder}/build/compile_commands.json",
             "cStandard": "c17",
             "cppStandard": "c++17",
             "intelliSenseMode": "macos-clang-arm64"

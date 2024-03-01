@@ -19,17 +19,24 @@ void SerialLink::init() {
     SerialSlave2.begin(115200, SERIAL_8N1, RXD2, TXD2);
 }
 
-void SerialLink::sendLog(const String &s) {
-    SerialLink::sendData("MON"+s+';');
+void SerialLink::sendLog(const char* data) {
+    SerialLink::sendData("MON", data);
 }
 
-void SerialLink::sendCommand(const String &s) {
-    SerialLink::sendData("CMD"+s+';');
+void SerialLink::sendCommand(const char* data) {
+    SerialLink::sendData("CMD", data);
 }
 
-void SerialLink::sendData(const String &s) {
-    SerialSlave1.println(s);
-    SerialSlave2.println(s);
+void SerialLink::sendData(const char* instruction, const char* data) {
+    // Lasciamo spazio (+2) per il ";" e per "/0"
+    char buffer [strlen(instruction) + strlen(data) + 2];
+    sprintf(buffer, "%s%s;\0", instruction, data);
+    SerialLink::sendData(buffer);
+}
+
+void SerialLink::sendData(const char* data) {
+    SerialSlave1.println(data);
+    SerialSlave2.println(data);
 }
 
 bool SerialLink::readCommand(String& commandBuffer) {

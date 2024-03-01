@@ -26,8 +26,10 @@ bool SerialLink::readCommand(String& commandBuffer) {
         delay(1);
         if (MASTER.available() > 0) {
             char c = MASTER.read();
-            if(c == ';') {
-                // Warning: se ci fosse un comando accodato verrebbe perso o ricevuto troncato. Può succedere?
+            if(c == '\n' || c == '\r') {
+                // Just skip
+            } else if(c == ';') {
+                // Command end
                 return true;
             } else {
                 commandBuffer += c;

@@ -68,7 +68,6 @@ void SwitecX12::step()
 void SwitecX12::advance()
 {
 
-
     for (int i=0; i<4; i++) {
         if (currentStep[i]==targetStep[i]) {
 
@@ -89,8 +88,6 @@ void SwitecX12::advance()
         return;
     }
 
-
-    updateDirections();
     step();
 
     time0 = micros();
@@ -112,6 +109,8 @@ void SwitecX12::setPosition(unsigned char motor, int step)
     if (time0 == 0) {
         time0 = micros();
     }
+
+    updateDirections();
 
 }
 

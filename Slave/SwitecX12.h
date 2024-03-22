@@ -5,7 +5,7 @@
 class SwitecX12 {
     public:
 
-        unsigned int steps;      // total steps available
+        int steps;      // total steps available
         unsigned char pinStep[4];
         unsigned char pinDir[4];
         int currentStep[4];      // step we are currently at

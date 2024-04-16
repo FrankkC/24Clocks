@@ -11,9 +11,10 @@ bool alreadyConnected = false;
 
 WifiManager::WifiManager() {}
 
-void WifiManager::init() {
+void WifiManager::init(void (*callback)()) {
 
     initWifi();
+    callback();
     initServer();
   
 }

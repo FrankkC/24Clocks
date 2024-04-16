@@ -5,14 +5,14 @@
 #include <WiFi.h>
 
 
-#define TIMEOUT 10000 // mS
+#define WIFI_TIMEOUT 10000 // mS
 
 class WifiManager {
 
     public:
 
         WifiManager();
-        static void init();
+        static void init(void (*callback)());
         static void sendData(String data);
         static String readCommand();
 

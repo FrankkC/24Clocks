@@ -22,6 +22,8 @@ Step3: Funzionalità per regolare la posizione delle lancette e comunicazione co
 #include <Arduino.h>
 #include "wifiManager.h"
 #include "serialLink.h"
+#include <ezTime.h>
+
 
 int timer = 0;
 bool countMode = false;
@@ -40,7 +42,22 @@ void setup() {
     Serial.println("Launching Master");
 
     SerialLink::init();
-    WifiManager::init();
+    WifiManager::init([]() {
+
+        waitForSync();
+
+        Serial.println("UTC: " + UTC.dateTime());
+        
+        Timezone timezone;
+        timezone.setLocation("Europe/Rome");
+
+        Serial.println("Italy time: " + timezone.dateTime());
+        setTime(timezone.hour()*60*60 + timezone.minute()*60 + timezone.second());
+
+        timeMode = true;
+        countMode = false;
+
+    });
 
 }
 
@@ -60,7 +77,7 @@ void loop() {
     int newMinutesSinceMidnight = (timeOffset + (millis()/1000)%86400)/60;
     if (timeMode && newMinutesSinceMidnight != minutesSinceMidnight) {
         minutesSinceMidnight = newMinutesSinceMidnight;
-        setTime(minutesSinceMidnight);
+        setTime(minutesSinceMidnight * 60);
         // Qui ci vorrebbe uno setDisplayCurrentTime
         int minutes = minutesSinceMidnight%60;
         int hours = (minutesSinceMidnight-minutes)/60;
@@ -93,7 +110,7 @@ void handleWifiCommand() {
 
             // Sottraggo i secondi dall'accensione%24oreInSecondi
             // setto timeoffset a questo valore in secondi
-            timeOffset = newTimeInSeconds - (millis()/1000)%86400;
+            setTime(newTimeInSeconds);
 
             // metto timeMode = true in modo da avviare l'update della posizione delle lancette
             timeMode = true;
@@ -126,10 +143,10 @@ void handleWifiCommand() {
 
 }
 
-void setTime(int32_t minutesSinceMidnight) {
+void setTime(int32_t secondsSinceMidnight) {
     // timeOffset è la differenza tra il tempo che vogliamo impostare e quanto riportato da millis().
     // il modulo 86400 serve a riportare millis() a un valore compreso in una giornata (se il dispositivo è acceso da più di 24h)
-    timeOffset = minutesSinceMidnight * 60 - (millis()/1000)%86400;
+    timeOffset = secondsSinceMidnight - (millis()/1000)%86400;
 }
 
 int getTime() {

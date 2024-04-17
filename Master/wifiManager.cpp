@@ -26,8 +26,6 @@ void WifiManager::sendData(String data) {
         client.println(data);
     }
 
-    /*WIFI_SERIAL.println(cmd); // Send "AT+" command to module
-    return echoFind(ack, error);*/
 }
 
 void WifiManager::initWifi() {

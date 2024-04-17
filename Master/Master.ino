@@ -43,20 +43,7 @@ void setup() {
 
     SerialLink::init();
     WifiManager::init([]() {
-
-        waitForSync();
-
-        Serial.println("UTC: " + UTC.dateTime());
-        
-        Timezone timezone;
-        timezone.setLocation("Europe/Rome");
-
-        Serial.println("Italy time: " + timezone.dateTime());
-        setTime(timezone.hour()*60*60 + timezone.minute()*60 + timezone.second());
-
-        timeMode = true;
-        countMode = false;
-
+        setNTP();
     });
 
 }
@@ -118,6 +105,8 @@ void handleWifiCommand() {
 
             setDisplayTime(newTime.c_str());
             WifiManager::sendData("SET TIME OK");
+        } else if (command.indexOf("SETNTP") != -1) {
+            setNTP();
         } else if (command.indexOf("SETHOME") != -1) {
             timeMode = false;
             countMode = false;
@@ -153,7 +142,6 @@ int getTime() {
     return timeOffset + (millis()/1000)%86400;
 }
 
-
 void setDisplayTime(const char* time) {
 
     Serial.printf("setDisplayTime: %s\n", time);
@@ -167,4 +155,21 @@ void setDisplayTime(const char* time) {
 void setHome() {
     Serial.println("Going home...");
     SerialLink::sendCommand("SETHOME");
+}
+
+void setNTP() {
+
+    if (waitForSync()) {
+        Timezone timezone;
+        timezone.setLocation("Europe/Rome");
+
+        setTime(timezone.hour()*60*60 + timezone.minute()*60 + timezone.second());
+        Serial.println("NTP time: " + timezone.dateTime());
+
+        timeMode = true;
+        countMode = false;
+    } else {
+        Serial.println("NTP time not available");
+    }
+
 }

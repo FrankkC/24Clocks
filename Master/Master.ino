@@ -30,10 +30,13 @@ bool countMode = false;
 // TODO: Gestire il cambio di modalità
 bool timeMode = false;
 
-int32_t timeOffset = 0;
-int minutesSinceMidnight = 0;
+unsigned long timeOffset = 0;
+unsigned int minutesSinceMidnight = 0;
 
 String commandBuffer;
+
+const unsigned long oneDaySeconds = 24*60*60;
+const unsigned long oneDayMillis = oneDaySeconds*1000;
 
 void setup() {
 
@@ -54,20 +57,22 @@ void loop() {
         countMode = true;
     }*/
 
-    if (countMode && timer != (millis()/1000)%10) {
+    /*if (countMode && timer != (millis()/1000)%10) {
         timer = (millis()/1000)%10;
         char time[5];
         sprintf (time, "%d%d%d%d\0", timer, timer, timer, timer);
         setDisplayTime(time);
-    }
+    }*/
 
-    int newMinutesSinceMidnight = (timeOffset + (millis()/1000)%86400)/60;
+    unsigned int newMinutesSinceMidnight = getTimeInSeconds() / 60;
     if (timeMode && newMinutesSinceMidnight != minutesSinceMidnight) {
         minutesSinceMidnight = newMinutesSinceMidnight;
-        setTime(minutesSinceMidnight * 60);
+        //setTimeInSeconds(minutesSinceMidnight * 60);
         // Qui ci vorrebbe uno setDisplayCurrentTime
-        int minutes = minutesSinceMidnight%60;
-        int hours = (minutesSinceMidnight-minutes)/60;
+        unsigned int minutes = minutesSinceMidnight%60;
+        unsigned int hours = (minutesSinceMidnight-minutes)/60;
+
+        Serial.printf("newTime %d --> %02d%02d\n", minutesSinceMidnight, hours, minutes);
 
         char time[5];
         sprintf (time, "%02d%02d\0", hours, minutes);
@@ -90,16 +95,15 @@ void handleWifiCommand() {
             String newTime = command.substring(command.indexOf("TIME=") + 5, command.indexOf("TIME=") + 9);
 
             // Converto il time in secondi dalla mezzanotte
-            int32_t tempIntTime = atoi(newTime.c_str());
-            int32_t minutes = tempIntTime % 100;
-            int32_t hours = (tempIntTime - minutes) / 100;
-            int32_t newTimeInSeconds = minutes * 60 + hours * 60 * 60;
+            unsigned int tempIntTime = atoi(newTime.c_str());
+            unsigned int minutes = tempIntTime % 100;
+            unsigned int hours = (tempIntTime - minutes) / 100;
+            unsigned long newTimeInSeconds = minutes * 60 + hours * 60 * 60;
 
-            // Sottraggo i secondi dall'accensione%24oreInSecondi
-            // setto timeoffset a questo valore in secondi
-            setTime(newTimeInSeconds);
+            // Setto timeoffset a questo valore
+            setTimeInSeconds(newTimeInSeconds);
 
-            // metto timeMode = true in modo da avviare l'update della posizione delle lancette
+            // Metto timeMode = true in modo da avviare l'update della posizione delle lancette
             timeMode = true;
             countMode = false;
 
@@ -132,14 +136,23 @@ void handleWifiCommand() {
 
 }
 
-void setTime(int32_t secondsSinceMidnight) {
+void setTimeInSeconds(unsigned long secondsSinceMidnight) {
+    assert(secondsSinceMidnight <= oneDaySeconds);
     // timeOffset è la differenza tra il tempo che vogliamo impostare e quanto riportato da millis().
     // il modulo 86400 serve a riportare millis() a un valore compreso in una giornata (se il dispositivo è acceso da più di 24h)
-    timeOffset = secondsSinceMidnight - (millis()/1000)%86400;
+    // timeOffset è compreso tra 1 e oneDaySeconds
+    timeOffset = secondsSinceMidnight - (millis()/1000)%oneDaySeconds < 0 ?
+        secondsSinceMidnight - (millis()/1000)%oneDaySeconds + oneDaySeconds :
+        secondsSinceMidnight - (millis()/1000)%oneDaySeconds;
+
+    // Riportiamo timeOffset tra 0 e oneDaySeconds-1 (probabilmente superfluo)
+    timeOffset--;
+
 }
 
-int getTime() {
-    return timeOffset + (millis()/1000)%86400;
+unsigned long getTimeInSeconds() {
+    // Il valore restituito deve essere compreso tra 0 e oneDaySeconds-1
+    return (timeOffset + millis()/1000)%oneDaySeconds;
 }
 
 void setDisplayTime(const char* time) {
@@ -163,7 +176,7 @@ void setNTP() {
         Timezone timezone;
         timezone.setLocation("Europe/Rome");
 
-        setTime(timezone.hour()*60*60 + timezone.minute()*60 + timezone.second());
+        setTimeInSeconds(timezone.hour()*60*60 + timezone.minute()*60 + timezone.second());
         Serial.println("NTP time: " + timezone.dateTime());
 
         timeMode = true;

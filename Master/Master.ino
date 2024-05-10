@@ -150,8 +150,6 @@ void handleWifiCommand() {
         } else if (command.indexOf("SETCOUNT=0") != -1) {
             countMode = false;
             WifiManager::sendData("SET COUNT MODE OFF OK");
-        } else if (command.indexOf("ECHO") != -1) {
-            WifiManager::sendData("ECHO OK");
         } else if (command.indexOf("SETMIN=0") != -1) {
             SerialLink::sendCommand("SETMIN=0");
             WifiManager::sendData("SETMIN=0 OK");
@@ -165,8 +163,11 @@ void handleWifiCommand() {
             SerialLink::sendCommand("SETHOU=1");
             WifiManager::sendData("SETHOU=1 OK");
         } else if (command.indexOf("SETSPIN=") != -1) {
-            SerialLink::sendCommand(command);
+            // TODO: Disattivare timeMode e countMode
+            SerialLink::sendCommand(command.c_str());
             WifiManager::sendData("SET SPIN OK");
+        } else if (command.indexOf("ECHO") != -1) {
+            WifiManager::sendData("ECHO OK");
         }
 
     }

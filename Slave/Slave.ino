@@ -29,9 +29,27 @@ constexpr int CONNECTED_BOARDS = 6;
 String commandBuffer;
 
 // Should be set to 0 for the left slave and 1 for the right slave
-int slaveOffset = 0;
+int slaveOffset = 1;
+
 bool hoursHandsActive = true;
 bool minutesHandsActive = true;
+
+/*
+
+Spin Mode
+
+Bit 0: spin minutes hand
+Bit 1: spin hours hand
+Bit 2: cw/ccw (0/1) minutes hand direction
+Bit 3: cw/ccw (0/1) hours hand direction
+
+ES:
+0000 --> spinMode = 0 --> no spin
+0001 --> spinMode = 1 --> spin minutes hand clockwise
+1111 --> spinMode = 15 --> spin both hands counter clockwise
+
+*/
+int spinMode = 0;
 
 SwitecX12 boards[CONNECTED_BOARDS];
 
@@ -97,6 +115,15 @@ void handleMasterCommand() {
                 hoursHandsActive = false;
             } else if (command.startsWith("SETHOU=1")) {
                 hoursHandsActive = true;
+            } else if (command.startsWith("SETSPIN=")) {
+                String spinCommand = command.substring(8);
+
+                // Il primo carattere (il più a sinistra) è il più significativo.
+                spinMode = ((spinCommand.charAt(0) == '1') << 3) | ((spinCommand.charAt(1) == '1') << 2) | ((spinCommand.charAt(2) == '1') << 1) | (spinCommand.charAt(3) == '1');
+
+                // TODO: Leggere appropriatamente lo spinMode nell'update
+
+                //setLocalDisplayTime(newTime.c_str());
             }
         }
 

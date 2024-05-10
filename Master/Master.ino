@@ -64,6 +64,23 @@ void loop() {
         setDisplayTime(time);
     }*/
 
+
+    // unsigned int newMinutesSinceMidnight = getTimeInSeconds();
+    // if (timeMode && newMinutesSinceMidnight != minutesSinceMidnight) {
+    //     minutesSinceMidnight = newMinutesSinceMidnight;
+    //     //setTimeInSeconds(minutesSinceMidnight * 60);
+    //     // Qui ci vorrebbe uno setDisplayCurrentTime
+    //     unsigned int seconds = minutesSinceMidnight%60;
+    //     unsigned int minutes = ((minutesSinceMidnight-seconds)/60)%60;
+
+    //     Serial.printf("newTime %d --> %02d%02d\n", minutesSinceMidnight, minutes, seconds);
+
+    //     char time[5];
+    //     sprintf (time, "%02d%02d\0", minutes, seconds);
+    //     setDisplayTime(time);
+    // }
+
+
     unsigned int newMinutesSinceMidnight = getTimeInSeconds() / 60;
     if (timeMode && newMinutesSinceMidnight != minutesSinceMidnight) {
         minutesSinceMidnight = newMinutesSinceMidnight;
@@ -98,19 +115,24 @@ void handleWifiCommand() {
             unsigned int tempIntTime = atoi(newTime.c_str());
             unsigned int minutes = tempIntTime % 100;
             unsigned int hours = (tempIntTime - minutes) / 100;
+
+            // Invertire le seguenti righe se utilizziamo il conteggio dei secondi invece dei minuti
             unsigned long newTimeInSeconds = minutes * 60 + hours * 60 * 60;
+            //unsigned long newTimeInSeconds = minutes + hours * 60;
+
 
             // Setto timeoffset a questo valore
             setTimeInSeconds(newTimeInSeconds);
+            setDisplayTime(newTime.c_str());
 
             // Metto timeMode = true in modo da avviare l'update della posizione delle lancette
             timeMode = true;
             countMode = false;
 
-            setDisplayTime(newTime.c_str());
             WifiManager::sendData("SET TIME OK");
         } else if (command.indexOf("SETNTP") != -1) {
             setNTP();
+            WifiManager::sendData("SETNTP OK");
         } else if (command.indexOf("SETHOME") != -1) {
             timeMode = false;
             countMode = false;
@@ -130,6 +152,21 @@ void handleWifiCommand() {
             WifiManager::sendData("SET COUNT MODE OFF OK");
         } else if (command.indexOf("ECHO") != -1) {
             WifiManager::sendData("ECHO OK");
+        } else if (command.indexOf("SETMIN=0") != -1) {
+            SerialLink::sendCommand("SETMIN=0");
+            WifiManager::sendData("SETMIN=0 OK");
+        } else if (command.indexOf("SETMIN=1") != -1) {
+            SerialLink::sendCommand("SETMIN=1");
+            WifiManager::sendData("SETMIN=1 OK");
+        } else if (command.indexOf("SETHOU=0") != -1) {
+            SerialLink::sendCommand("SETHOU=0");
+            WifiManager::sendData("SETHOU=0 OK");
+        } else if (command.indexOf("SETHOU=1") != -1) {
+            SerialLink::sendCommand("SETHOU=1");
+            WifiManager::sendData("SETHOU=1 OK");
+        } else if (command.indexOf("SETSPIN=") != -1) {
+            SerialLink::sendCommand(command);
+            WifiManager::sendData("SET SPIN OK");
         }
 
     }
@@ -137,7 +174,7 @@ void handleWifiCommand() {
 }
 
 void setTimeInSeconds(unsigned long secondsSinceMidnight) {
-    assert(secondsSinceMidnight <= oneDaySeconds);
+    //assert(secondsSinceMidnight <= oneDaySeconds);
     // timeOffset è la differenza tra il tempo che vogliamo impostare e quanto riportato da millis().
     // il modulo 86400 serve a riportare millis() a un valore compreso in una giornata (se il dispositivo è acceso da più di 24h)
     // timeOffset è compreso tra 1 e oneDaySeconds

@@ -30,6 +30,8 @@ String commandBuffer;
 
 // Should be set to 0 for the left slave and 1 for the right slave
 int slaveOffset = 0;
+bool hoursHandsActive = true;
+bool minutesHandsActive = true;
 
 SwitecX12 boards[CONNECTED_BOARDS];
 
@@ -87,6 +89,14 @@ void handleMasterCommand() {
                 setLocalDisplayTime(newTime.c_str());
             } else if (command.startsWith("SETHOME")) {
                 setLocalHome();
+            } else if (command.startsWith("SETMIN=0")) {
+                minutesHandsActive = false;
+            } else if (command.startsWith("SETMIN=1")) {
+                minutesHandsActive = true;
+            } else if (command.startsWith("SETHOU=0")) {
+                hoursHandsActive = false;
+            } else if (command.startsWith("SETHOU=1")) {
+                hoursHandsActive = true;
             }
         }
 
@@ -117,10 +127,10 @@ void setLocalDisplayTime(const char* time) {
 
         int timeDigit = (i/3) * 2 + slaveOffset;
 
-        boards[i].setTargetRotation(0, numbers[time[timeDigit] - '0'][i%3][0][0]);   // Left hour hand
-        boards[i].setTargetRotation(1, numbers[time[timeDigit] - '0'][i%3][0][1]);   // Left minutes hand
-        boards[i].setTargetRotation(2, numbers[time[timeDigit] - '0'][i%3][1][0]);   // Right hour hand
-        boards[i].setTargetRotation(3, numbers[time[timeDigit] - '0'][i%3][1][1]);   // Right minutes hand
+        if (hoursHandsActive) boards[i].setTargetRotation(0, numbers[time[timeDigit] - '0'][i%3][0][0]);   // Left hour hand
+        if (minutesHandsActive) boards[i].setTargetRotation(1, numbers[time[timeDigit] - '0'][i%3][0][1]);   // Left minutes hand
+        if (minutesHandsActive) boards[i].setTargetRotation(2, numbers[time[timeDigit] - '0'][i%3][1][0]);   // Right minutes hand
+        if (hoursHandsActive) boards[i].setTargetRotation(3, numbers[time[timeDigit] - '0'][i%3][1][1]);   // Right hour hand
 
     }
 }
@@ -128,10 +138,10 @@ void setLocalDisplayTime(const char* time) {
 void setLocalHome() {
     for (int i = 0; i < CONNECTED_BOARDS; i++) {
 
-        boards[i].setTargetRotation(0, 0);   // Left hour hand
-        boards[i].setTargetRotation(1, 0);   // Left minutes hand
-        boards[i].setTargetRotation(2, 0);   // Right hour hand
-        boards[i].setTargetRotation(3, 0);   // Right minutes hand
+        if (hoursHandsActive) boards[i].setTargetRotation(0, 0);   // Left hour hand
+        if (minutesHandsActive) boards[i].setTargetRotation(1, 0);   // Left minutes hand
+        if (minutesHandsActive) boards[i].setTargetRotation(2, 0);   // Right minutes hand
+        if (hoursHandsActive) boards[i].setTargetRotation(3, 0);   // Right hour hand
 
     }
 }

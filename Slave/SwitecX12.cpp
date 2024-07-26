@@ -14,10 +14,10 @@
 
 
 // Individuare il valore ideale per il delay tra uno step e l'altro (microsecondi)
-const int staticDelay = 100;
+const int staticDelay = 300;
 
 // Individuare il valore ideale per il tempo di up dell'impulso per ogni step (microsecondi)
-const int stepPulseMicrosec = 2;
+const int stepPulseMicrosec = 5;
 
 SwitecX12::SwitecX12() {}
 

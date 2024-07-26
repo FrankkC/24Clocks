@@ -20,16 +20,18 @@ Step3: Funzionalità per regolare la posizione delle lancette e comunicazione co
 #include "ClockPins.h"
 #include "serialLink.h"
 
-const int STEPS = 360 * 12;
-const int RESETPIN = 17;
+#define MASTER Serial3
+
+constexpr uint16_t STEPS = 360 * 12;
+constexpr uint8_t RESETPIN = 17;
 
 
-constexpr int CONNECTED_BOARDS = 6;
+constexpr uint8_t CONNECTED_BOARDS = 6;
 
 String commandBuffer;
 
 // Should be set to 0 for the left slave and 1 for the right slave
-int slaveOffset = 1;
+constexpr uint8_t slaveOffset = 1;
 
 bool hoursHandsActive = true;
 bool minutesHandsActive = true;
@@ -77,28 +79,29 @@ void setup() {
         addBoard(i);
     }
 
-    SerialLink::init();
+    SerialLink::init(&MASTER);
 
 }
 
 void loop() {
 
-    bool allStopped = true;
+    //bool allStopped = true;
 
     for (int i = 0; i < CONNECTED_BOARDS; i++) {
         boards[i].update();
-        allStopped &= boards[i].allStopped();
+        //allStopped &= boards[i].allStopped();
     }
 
     handleMasterCommand();
+    handleCLICommand();
 
 }
 
-void handleMasterCommand() {
+void handleSerialCommand(HardwareSerial* serialLink) {
 
-    if (SerialLink::readCommand(commandBuffer)) {
+    if (SerialLink::readCommand(serialLink, commandBuffer)) {
 
-        Serial.println("handleMasterCommand: " + commandBuffer);
+        Serial.println("handleSerialCommand: " + commandBuffer);
 
         if (commandBuffer.startsWith("CMD")) {
             String command = commandBuffer.substring(3);
@@ -131,6 +134,14 @@ void handleMasterCommand() {
 
     }
 
+}
+
+void handleCLICommand() {
+    handleSerialCommand(&Serial);
+}
+
+void handleMasterCommand() {
+    handleSerialCommand(&MASTER);
 }
 
 void addBoard(char boardIndex) {

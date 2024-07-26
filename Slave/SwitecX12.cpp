@@ -17,7 +17,7 @@
 const int staticDelay = 100;
 
 // Individuare il valore ideale per il tempo di up dell'impulso per ogni step (microsecondi)
-const int stepPulseMicrosec = 1;
+const int stepPulseMicrosec = 2;
 
 SwitecX12::SwitecX12() {}
 
@@ -25,7 +25,7 @@ SwitecX12::SwitecX12(unsigned int steps, unsigned char pinStep[], unsigned char 
 {
 
     this->steps = steps;
-    for (int i=0; i<4; i++) {
+    for (int i=0; i<MOTORS_COUNT; i++) {
 
         this->pinStep[i] = pinStep[i];
         this->pinDir[i] = pinDir[i];
@@ -48,17 +48,17 @@ SwitecX12::SwitecX12(unsigned int steps, unsigned char pinStep[], unsigned char 
 void SwitecX12::step()
 {
 
-    for (int i=0; i<4; i++) {
+    for (int i=0; i<MOTORS_COUNT; i++) {
         digitalWrite(pinDir[i], (dir[i] > 0) == reversedDirection[i] ? LOW : HIGH);
     }
     
-    for (int i=0; i<4; i++) {
+    for (int i=0; i<MOTORS_COUNT; i++) {
         digitalWrite(pinStep[i], !stopped[i]);
     }
     
     delayMicroseconds(stepPulseMicrosec);
     
-    for (int i=0; i<4; i++) {
+    for (int i=0; i<MOTORS_COUNT; i++) {
         digitalWrite(pinStep[i], LOW);
         currentStep[i] += dir[i];
     }
@@ -68,7 +68,7 @@ void SwitecX12::step()
 void SwitecX12::advance()
 {
 
-    for (int i=0; i<4; i++) {
+    for (int i=0; i<MOTORS_COUNT; i++) {
         if (currentStep[i]==targetStep[i]) {
 
             if (currentStep[i] >= steps) {
@@ -116,7 +116,7 @@ void SwitecX12::setPosition(unsigned char motor, int step)
 
 void SwitecX12::updateDirections() {
 
-    for (int i=0; i<4; i++) {
+    for (int i=0; i<MOTORS_COUNT; i++) {
 
         int delta = targetStep[i] - currentStep[i];
         int halfSteps = steps*0.5;
@@ -124,6 +124,8 @@ void SwitecX12::updateDirections() {
         if ( delta == 0 ) {
             dir[i] = 0;
         } else if ( delta < -halfSteps ) { // < -180
+
+            // Modificare i targetStep andrebbe fatto in setPosition
             targetStep[i] += steps;
             dir[i] = 1;
         } else if (delta <= 0) {  // <= 0
@@ -131,6 +133,8 @@ void SwitecX12::updateDirections() {
         } else if (delta <= halfSteps) {  // <= 180
             dir[i] = 1;
         } else { // > 180
+
+            // Modificare i targetStep andrebbe fatto in setPosition
             targetStep[i] -= steps;
             dir[i] = -1;
         }
@@ -163,7 +167,12 @@ float SwitecX12::stepsToRotation(int pos) {
 }
 
 bool SwitecX12::allStopped() {
-    return stopped[0] && stopped[1] && stopped[2] && stopped[3];
+    bool allStopped = true;
+    for (int i=0; i<MOTORS_COUNT; i++) {
+        allStopped &= stopped[i];
+    }
+    return allStopped;
+    //return stopped[0] && stopped[1] && stopped[2] && stopped[3];
 }
 
 void SwitecX12::update()

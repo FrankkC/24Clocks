@@ -4,28 +4,28 @@
 
 SerialLink::SerialLink() {}
 
-void SerialLink::init() {
-    MASTER.begin(115200);
+void SerialLink::init(HardwareSerial* serialLink) {
+    serialLink->begin(115200);
 }
 
-void SerialLink::sendLog(const String &s) {
-    SerialLink::sendData("MON"+s+';');
+void SerialLink::sendLog(HardwareSerial* serialLink, const String &s) {
+    SerialLink::sendData(serialLink, "MON"+s+';');
 }
 
-void SerialLink::sendCommand(const String &s) {
-    SerialLink::sendData("CMD"+s+';');
+void SerialLink::sendCommand(HardwareSerial* serialLink, const String &s) {
+    SerialLink::sendData(serialLink, "CMD"+s+';');
 }
 
-void SerialLink::sendData(const String &s) {
-    MASTER.println(s);
+void SerialLink::sendData(HardwareSerial* serialLink, const String &s) {
+    serialLink->println(s);
 }
 
-bool SerialLink::readCommand(String& commandBuffer) {
+bool SerialLink::readCommand(HardwareSerial* serialLink, String& commandBuffer) {
 
-    while (MASTER.available()) {
+    while (serialLink->available()) {
         delay(1);
-        if (MASTER.available() > 0) {
-            char c = MASTER.read();
+        if (serialLink->available() > 0) {
+            char c = serialLink->read();
             if(c == '\n' || c == '\r') {
                 // Just skip
             } else if(c == ';') {

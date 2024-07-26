@@ -2,20 +2,18 @@
 #define serialLink_h
 #include <Arduino.h>
 
-#define MASTER Serial3
-
 class SerialLink {
 
     public:
 
         SerialLink();
-        static void init();
-        static void sendLog(const String &s);
-        static void sendCommand(const String &s);
-        static bool readCommand(String& commandBuffer);
+        static void init(HardwareSerial* serialLink);
+        static void sendLog(HardwareSerial* serialLink, const String &s);
+        static void sendCommand(HardwareSerial* serialLink, const String &s);
+        static bool readCommand(HardwareSerial* serialLink, String& commandBuffer);
 
     private:
-        static void sendData(const String &s);
+        static void sendData(HardwareSerial* serialLink, const String &s);
 
 };
 

@@ -167,8 +167,8 @@ void setLocalDisplayTime(const char* time) {
 
         if (hoursHandsActive) boards[i].setTargetRotation(0, numbers[time[timeDigit] - '0'][i%3][0][0]);   // Left hour hand
         if (minutesHandsActive) boards[i].setTargetRotation(1, numbers[time[timeDigit] - '0'][i%3][0][1]);   // Left minutes hand
-        if (minutesHandsActive) boards[i].setTargetRotation(2, numbers[time[timeDigit] - '0'][i%3][1][0]);   // Right minutes hand
-        if (hoursHandsActive) boards[i].setTargetRotation(3, numbers[time[timeDigit] - '0'][i%3][1][1]);   // Right hour hand
+        if (hoursHandsActive) boards[i].setTargetRotation(2, numbers[time[timeDigit] - '0'][i%3][1][0]);   // Right hour hand
+        if (minutesHandsActive) boards[i].setTargetRotation(3, numbers[time[timeDigit] - '0'][i%3][1][1]);   // Right minutes hand
 
     }
 }
@@ -178,8 +178,8 @@ void setLocalHome() {
 
         if (hoursHandsActive) boards[i].setTargetRotation(0, 0);   // Left hour hand
         if (minutesHandsActive) boards[i].setTargetRotation(1, 0);   // Left minutes hand
-        if (minutesHandsActive) boards[i].setTargetRotation(2, 0);   // Right minutes hand
-        if (hoursHandsActive) boards[i].setTargetRotation(3, 0);   // Right hour hand
+        if (hoursHandsActive) boards[i].setTargetRotation(2, 0);   // Right hour hand
+        if (minutesHandsActive) boards[i].setTargetRotation(3, 0);   // Right minutes hand
 
     }
 }

@@ -25,18 +25,19 @@ Step3: Funzionalità per regolare la posizione delle lancette e comunicazione co
 #include <ezTime.h>
 
 
-int timer = 0;
+//int timer = 0;
 bool countMode = false;
 // TODO: Gestire il cambio di modalità
 bool timeMode = false;
 
-unsigned long timeOffset = 0;
-unsigned int minutesSinceMidnight = 0;
+uint32_t timeOffset = 0;
+uint32_t secondsSinceMidnight = 0;
+uint16_t minutesSinceMidnight = 0;
 
 String commandBuffer;
 
-const unsigned long oneDaySeconds = 24*60*60;
-const unsigned long oneDayMillis = oneDaySeconds*1000;
+const uint32_t oneDaySeconds = 24*60*60;
+const uint32_t oneDayMillis = oneDaySeconds*1000;
 
 void setup() {
 
@@ -64,23 +65,23 @@ void loop() {
         setDisplayTime(time);
     }*/
 
+    // Avanzamento ogni secondo
+    /*uint32_t newSecondsSinceMidnight = getTimeInSeconds();
+    if (timeMode && newSecondsSinceMidnight != secondsSinceMidnight) {
+        secondsSinceMidnight = newSecondsSinceMidnight;
+        //setTimeInSeconds(minutesSinceMidnight * 60);
+        // Qui ci vorrebbe uno setDisplayCurrentTime
+        uint8_t seconds = secondsSinceMidnight%60;
+        uint8_t minutes = ((secondsSinceMidnight-seconds)/60)%60;
 
-    // unsigned int newMinutesSinceMidnight = getTimeInSeconds();
-    // if (timeMode && newMinutesSinceMidnight != minutesSinceMidnight) {
-    //     minutesSinceMidnight = newMinutesSinceMidnight;
-    //     //setTimeInSeconds(minutesSinceMidnight * 60);
-    //     // Qui ci vorrebbe uno setDisplayCurrentTime
-    //     unsigned int seconds = minutesSinceMidnight%60;
-    //     unsigned int minutes = ((minutesSinceMidnight-seconds)/60)%60;
+        Serial.printf("newTime %d --> %02d%02d\n", secondsSinceMidnight, minutes, seconds);
 
-    //     Serial.printf("newTime %d --> %02d%02d\n", minutesSinceMidnight, minutes, seconds);
+        char time[5];
+        sprintf (time, "%02d%02d\0", minutes, seconds);
+        setDisplayTime(time);
+    }*/
 
-    //     char time[5];
-    //     sprintf (time, "%02d%02d\0", minutes, seconds);
-    //     setDisplayTime(time);
-    // }
-
-
+    // Avanzamento ogni minuto
     unsigned int newMinutesSinceMidnight = getTimeInSeconds() / 60;
     if (timeMode && newMinutesSinceMidnight != minutesSinceMidnight) {
         minutesSinceMidnight = newMinutesSinceMidnight;

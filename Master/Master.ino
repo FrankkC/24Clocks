@@ -34,8 +34,6 @@ uint32_t timeOffset = 0;
 uint32_t secondsSinceMidnight = 0;
 uint16_t minutesSinceMidnight = 0;
 
-String commandBuffer;
-
 const uint32_t oneDaySeconds = 24*60*60;
 const uint32_t oneDayMillis = oneDaySeconds*1000;
 
@@ -65,40 +63,26 @@ void loop() {
         setDisplayTime(time);
     }*/
 
-    // Avanzamento ogni secondo
-    /*uint32_t newSecondsSinceMidnight = getTimeInSeconds();
-    if (timeMode && newSecondsSinceMidnight != secondsSinceMidnight) {
-        secondsSinceMidnight = newSecondsSinceMidnight;
-        //setTimeInSeconds(minutesSinceMidnight * 60);
-        // Qui ci vorrebbe uno setDisplayCurrentTime
-        uint8_t seconds = secondsSinceMidnight%60;
-        uint8_t minutes = ((secondsSinceMidnight-seconds)/60)%60;
-
-        Serial.printf("newTime %d --> %02d%02d\n", secondsSinceMidnight, minutes, seconds);
-
-        char time[5];
-        sprintf (time, "%02d%02d\0", minutes, seconds);
-        setDisplayTime(time);
-    }*/
-
     // Avanzamento ogni minuto
     unsigned int newMinutesSinceMidnight = getTimeInSeconds() / 60;
     if (timeMode && newMinutesSinceMidnight != minutesSinceMidnight) {
         minutesSinceMidnight = newMinutesSinceMidnight;
-        //setTimeInSeconds(minutesSinceMidnight * 60);
-        // Qui ci vorrebbe uno setDisplayCurrentTime
-        unsigned int minutes = minutesSinceMidnight%60;
-        unsigned int hours = (minutesSinceMidnight-minutes)/60;
-
-        Serial.printf("newTime %d --> %02d%02d\n", minutesSinceMidnight, hours, minutes);
-
-        char time[5];
-        sprintf (time, "%02d%02d\0", hours, minutes);
-        setDisplayTime(time);
+        char timeStr[5];
+        getTimeString(timeStr);
+        setDisplayTime(timeStr);
     }
 
     handleWifiCommand();
 
+}
+
+void getTimeString(char* buffer) {
+
+    unsigned int minutes = minutesSinceMidnight%60;
+    unsigned int hours = (minutesSinceMidnight-minutes)/60;
+
+    Serial.printf("newTime %d --> %02d%02d\n", minutesSinceMidnight, hours, minutes);
+    sprintf(buffer, "%02d%02d", hours, minutes);
 }
 
 void handleWifiCommand() {
@@ -169,6 +153,23 @@ void handleWifiCommand() {
             WifiManager::sendData("SET SPIN OK");
         } else if (command.indexOf("ECHO") != -1) {
             WifiManager::sendData("ECHO OK");
+        } else if (command.indexOf("UPTIME") != -1) {
+            // Print device uptime in seconds
+            unsigned long uptime = millis() / 1000;
+            WifiManager::sendData("UPTIME=" + String(uptime) + " seconds");
+        } else if (command.indexOf("DEBUG") != -1) {
+            unsigned long uptime = millis() / 1000;
+            WifiManager::sendData("UPTIME=" + String(uptime) + " seconds");
+            WifiManager::sendData("countMode=" + String(countMode));
+            WifiManager::sendData("timeMode=" + String(timeMode));
+            WifiManager::sendData("timeOffset=" + String(timeOffset) + " seconds");
+            WifiManager::sendData("secondsSinceMidnight=" + String(secondsSinceMidnight) + " seconds");
+            WifiManager::sendData("minutesSinceMidnight=" + String(minutesSinceMidnight) + " minutes");
+            char timeStr[5];
+            getTimeString(timeStr);
+            WifiManager::sendData("timeStr=" + String(timeStr));
+        } else {
+            WifiManager::sendData("UNKNOWN COMMAND");
         }
 
     }
@@ -179,13 +180,10 @@ void setTimeInSeconds(unsigned long secondsSinceMidnight) {
     //assert(secondsSinceMidnight <= oneDaySeconds);
     // timeOffset è la differenza tra il tempo che vogliamo impostare e quanto riportato da millis().
     // il modulo 86400 serve a riportare millis() a un valore compreso in una giornata (se il dispositivo è acceso da più di 24h)
-    // timeOffset è compreso tra 1 e oneDaySeconds
-    timeOffset = secondsSinceMidnight - (millis()/1000)%oneDaySeconds < 0 ?
+    // se secondsSinceMidnight < oneDaySeconds, i risultato di timeOffset sarà sempre compreso tra 0 e oneDaySeconds-1
+    timeOffset = (secondsSinceMidnight - (millis()/1000)%oneDaySeconds) < 0 ?
         secondsSinceMidnight - (millis()/1000)%oneDaySeconds + oneDaySeconds :
         secondsSinceMidnight - (millis()/1000)%oneDaySeconds;
-
-    // Riportiamo timeOffset tra 0 e oneDaySeconds-1 (probabilmente superfluo)
-    timeOffset--;
 
 }
 

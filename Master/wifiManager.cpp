@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include "WifiManager.h"
-//#include "serialLink.h"
 
 const char* ssid = "MY_WIFI_SSID";
 const char* password = "***REDACTED***";

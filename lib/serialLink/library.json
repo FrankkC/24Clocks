@@ -1,0 +1,19 @@
+{
+  "name": "serialLink",
+  "version": "1.0.0",
+  "description": "A library for serial communication.",
+  "keywords": "serial, communication",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "authors": [
+    {
+      "name": "Francesco Comi",
+      "email": "",
+      "maintainer": true
+    }
+  ],
+  "frameworks": "arduino",
+  "platforms": "*"
+}

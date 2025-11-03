@@ -17,7 +17,7 @@ Step3: Functionality to adjust the position of the hands using telnet or the And
 #include "SwitecX12.h"
 #include "ClockPositions.h"
 #include "ClockPins.h"
-#include "serialLink.h"
+#include <serialLink.h>
 
 #define MASTER Serial3
 
@@ -27,7 +27,8 @@ constexpr uint8_t RESETPIN = 17;
 
 constexpr uint8_t CONNECTED_BOARDS = 6;
 
-String commandBuffer;
+SerialLink masterLink(MASTER);
+SerialLink cliLink(Serial);
 
 // Must be set to 0 for the left slave and 1 for the right slave
 constexpr uint8_t slaveOffset = 1;
@@ -54,6 +55,32 @@ int spinMode = 0;
 
 SwitecX12 boards[CONNECTED_BOARDS];
 
+void handleCommand(const char* rawCommand) {
+    String command = String(rawCommand);
+    Serial.println("commandCallback: " + command);
+
+    if (command.startsWith("CMD")) {
+        String cmd = command.substring(3);
+        if (cmd.startsWith("SETTIME=")) {
+            String newTime = cmd.substring(8);
+            setLocalDisplayTime(newTime.c_str());
+        } else if (cmd.startsWith("SETHOME")) {
+            setLocalHome();
+        } else if (cmd.startsWith("SETMIN=0")) {
+            minutesHandsActive = false;
+        } else if (cmd.startsWith("SETMIN=1")) {
+            minutesHandsActive = true;
+        } else if (cmd.startsWith("SETHOU=0")) {
+            hoursHandsActive = false;
+        } else if (cmd.startsWith("SETHOU=1")) {
+            hoursHandsActive = true;
+        } else if (cmd.startsWith("SETSPIN=")) {
+            String spinCommand = cmd.substring(8);
+            spinMode = ((spinCommand.charAt(0) == '1') << 3) | ((spinCommand.charAt(1) == '1') << 2) | ((spinCommand.charAt(2) == '1') << 1) | (spinCommand.charAt(3) == '1');
+        }
+    }
+}
+
 void setup() {
 
     Serial.begin(115200);
@@ -78,70 +105,24 @@ void setup() {
         addBoard(i);
     }
 
-    SerialLink::init(&MASTER);
+    MASTER.begin(115200);
+    masterLink.setCommandCallback(handleCommand);
+    cliLink.setCommandCallback(handleCommand);
 
 }
 
 void loop() {
 
-    //bool allStopped = true;
-
     for (int i = 0; i < CONNECTED_BOARDS; i++) {
         boards[i].update();
-        //allStopped &= boards[i].allStopped();
     }
 
-    handleMasterCommand();
-    handleCLICommand();
+    masterLink.loop();
+    cliLink.loop();
 
 }
 
-void handleSerialCommand(HardwareSerial* serialLink) {
 
-    if (SerialLink::readCommand(serialLink, commandBuffer)) {
-
-        Serial.println("handleSerialCommand: " + commandBuffer);
-
-        if (commandBuffer.startsWith("CMD")) {
-            String command = commandBuffer.substring(3);
-            if (command.startsWith("SETTIME=")) {
-                String newTime = command.substring(8);
-                setLocalDisplayTime(newTime.c_str());
-            } else if (command.startsWith("SETHOME")) {
-                setLocalHome();
-            } else if (command.startsWith("SETMIN=0")) {
-                minutesHandsActive = false;
-            } else if (command.startsWith("SETMIN=1")) {
-                minutesHandsActive = true;
-            } else if (command.startsWith("SETHOU=0")) {
-                hoursHandsActive = false;
-            } else if (command.startsWith("SETHOU=1")) {
-                hoursHandsActive = true;
-            } else if (command.startsWith("SETSPIN=")) {
-                String spinCommand = command.substring(8);
-
-                // The first character (the leftmost) is the most significant.
-                spinMode = ((spinCommand.charAt(0) == '1') << 3) | ((spinCommand.charAt(1) == '1') << 2) | ((spinCommand.charAt(2) == '1') << 1) | (spinCommand.charAt(3) == '1');
-
-                // TODO: Read the spinMode appropriately in the update
-
-                //setLocalDisplayTime(newTime.c_str());
-            }
-        }
-
-        commandBuffer = "";
-
-    }
-
-}
-
-void handleCLICommand() {
-    handleSerialCommand(&Serial);
-}
-
-void handleMasterCommand() {
-    handleSerialCommand(&MASTER);
-}
 
 void addBoard(char boardIndex) {
 

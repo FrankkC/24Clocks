@@ -15,7 +15,6 @@ Serial3 --> Master
 
 /*
 TODO:
-Step2: Fix bug Rotazione lancetta tra 2 e 3 alla sesta (settima) iterazione del counter
 Step3: Funzionalità per regolare la posizione delle lancette e comunicazione con WiFi e App Android
 */
 

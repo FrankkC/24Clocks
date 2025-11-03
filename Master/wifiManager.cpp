@@ -61,7 +61,7 @@ String WifiManager::readCommand() {
 
     if (client) {                   // if client connected
         if (!alreadyConnected) {
-            // clead out the input buffer:
+            // clear out the input buffer:
             client.flush();
             Serial.println("We have a new client");
             alreadyConnected = true;

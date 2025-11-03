@@ -15,7 +15,7 @@ Serial3 --> Master
 
 /*
 TODO:
-Step3: Funzionalità per regolare la posizione delle lancette e comunicazione con WiFi e App Android
+Step3: Functionality to adjust the position of the hands using telnet or the Android app
 */
 
 #include <Arduino.h>
@@ -26,7 +26,7 @@ Step3: Funzionalità per regolare la posizione delle lancette e comunicazione co
 
 //int timer = 0;
 bool countMode = false;
-// TODO: Gestire il cambio di modalità
+// TODO: Handle mode change
 bool timeMode = false;
 
 uint32_t timeOffset = 0;
@@ -62,7 +62,7 @@ void loop() {
         setDisplayTime(time);
     }*/
 
-    // Avanzamento ogni minuto
+    // Update every minute
     unsigned int newMinutesSinceMidnight = getTimeInSeconds() / 60;
     if (timeMode && newMinutesSinceMidnight != minutesSinceMidnight) {
         minutesSinceMidnight = newMinutesSinceMidnight;
@@ -95,21 +95,21 @@ void handleWifiCommand() {
         if (command.indexOf("SETTIME=") != -1) {
             String newTime = command.substring(command.indexOf("TIME=") + 5, command.indexOf("TIME=") + 9);
 
-            // Converto il time in secondi dalla mezzanotte
+            // Convert the time into seconds since midnight
             unsigned int tempIntTime = atoi(newTime.c_str());
             unsigned int minutes = tempIntTime % 100;
             unsigned int hours = (tempIntTime - minutes) / 100;
 
-            // Invertire le seguenti righe se utilizziamo il conteggio dei secondi invece dei minuti
+            // Invert the following lines if we are using the seconds count instead of the minutes
             unsigned long newTimeInSeconds = minutes * 60 + hours * 60 * 60;
             //unsigned long newTimeInSeconds = minutes + hours * 60;
 
 
-            // Setto timeoffset a questo valore
+            // Set timeoffset to this value
             setTimeInSeconds(newTimeInSeconds);
             setDisplayTime(newTime.c_str());
 
-            // Metto timeMode = true in modo da avviare l'update della posizione delle lancette
+            // Set timeMode = true to start updating the hands position
             timeMode = true;
             countMode = false;
 
@@ -147,7 +147,7 @@ void handleWifiCommand() {
             SerialLink::sendCommand("SETHOU=1");
             WifiManager::sendData("SETHOU=1 OK");
         } else if (command.indexOf("SETSPIN=") != -1) {
-            // TODO: Disattivare timeMode e countMode
+            // TODO: Deactivate timeMode and countMode
             SerialLink::sendCommand(command.c_str());
             WifiManager::sendData("SET SPIN OK");
         } else if (command.indexOf("ECHO") != -1) {
@@ -176,10 +176,10 @@ void handleWifiCommand() {
 }
 
 void setTimeInSeconds(unsigned long secondsSinceMidnight) {
-    //assert(secondsSinceMidnight <= oneDaySeconds);
-    // timeOffset è la differenza tra il tempo che vogliamo impostare e quanto riportato da millis().
-    // il modulo 86400 serve a riportare millis() a un valore compreso in una giornata (se il dispositivo è acceso da più di 24h)
-    // se secondsSinceMidnight < oneDaySeconds, i risultato di timeOffset sarà sempre compreso tra 0 e oneDaySeconds-1
+    //assert(secondsSinceMidnight < oneDaySeconds);
+    // timeOffset is the difference between the time we want to set and what is reported by millis().
+    // the modulo 86400 is used to bring millis() back to a value within a day (if the device has been on for more than 24h)
+    // if secondsSinceMidnight < oneDaySeconds, the result of timeOffset will always be between 0 and oneDaySeconds-1
     timeOffset = (secondsSinceMidnight - (millis()/1000)%oneDaySeconds) < 0 ?
         secondsSinceMidnight - (millis()/1000)%oneDaySeconds + oneDaySeconds :
         secondsSinceMidnight - (millis()/1000)%oneDaySeconds;
@@ -187,7 +187,7 @@ void setTimeInSeconds(unsigned long secondsSinceMidnight) {
 }
 
 unsigned long getTimeInSeconds() {
-    // Il valore restituito deve essere compreso tra 0 e oneDaySeconds-1
+    // The returned value must be between 0 and oneDaySeconds-1
     return (timeOffset + millis()/1000)%oneDaySeconds;
 }
 

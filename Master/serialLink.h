@@ -2,8 +2,8 @@
 #define serialLink_h
 #include <Arduino.h>
 
-// Invece di avere un solo SLAVE qui devo definire un array o una mappa di slave. Il valore è il serial monitor da usare
-// Ho anche bisogno di poter definire porte diverse per l'invio e per la ricezione
+// Instead of having a single SLAVE here I have to define an array or a map of slaves. The value is the serial monitor to use
+// I also need to be able to define different ports for sending and receiving
 
 
 class SerialLink {

@@ -28,7 +28,7 @@ void SerialLink::sendCommand(const char* data) {
 }
 
 void SerialLink::sendData(const char* instruction, const char* data) {
-    // Lasciamo spazio (+2) per il ";" e per "/0"
+    // We leave space (+2) for the ";" and for "\0"
     char buffer [strlen(instruction) + strlen(data) + 2];
     sprintf(buffer, "%s%s;\0", instruction, data);
     SerialLink::sendData(buffer);
@@ -46,7 +46,7 @@ bool SerialLink::readCommand(String& commandBuffer) {
         if (SerialSlave2.available() > 0) {
             char c = SerialSlave2.read();
             if(c == ';') {
-                // Warning: se ci fosse un comando accodato verrebbe perso o ricevuto troncato. Può succedere?
+                // Warning: if there was a queued command it would be lost or received truncated. Can it happen?
                 return true;
             } else {
                 commandBuffer += c;

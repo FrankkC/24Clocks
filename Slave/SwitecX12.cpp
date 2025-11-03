@@ -10,13 +10,13 @@
 #include <Arduino.h>
 #include "SwitecX12.h"
 
-// TODO: Provare a scrivere più pin contemporaneamente manipolando i registri.
+// TODO: Try to write to multiple pins at the same time by manipulating the registers.
 
 
-// Individuare il valore ideale per il delay tra uno step e l'altro (microsecondi)
+// Find the ideal value for the delay between one step and another (microseconds)
 const int staticDelay = 300;
 
-// Individuare il valore ideale per il tempo di up dell'impulso per ogni step (microsecondi)
+// Find the ideal value for the impulse up time for each step (microseconds)
 const int stepPulseMicrosec = 5;
 
 SwitecX12::SwitecX12() {}
@@ -125,7 +125,7 @@ void SwitecX12::updateDirections() {
             dir[i] = 0;
         } else if ( delta < -halfSteps ) { // < -180
 
-            // Modificare i targetStep andrebbe fatto in setPosition
+            // Modifying targetStep should be done in setPosition
             targetStep[i] += steps;
             dir[i] = 1;
         } else if (delta <= 0) {  // <= 0
@@ -134,7 +134,7 @@ void SwitecX12::updateDirections() {
             dir[i] = 1;
         } else { // > 180
 
-            // Modificare i targetStep andrebbe fatto in setPosition
+            // Modifying targetStep should be done in setPosition
             targetStep[i] -= steps;
             dir[i] = -1;
         }
@@ -145,8 +145,8 @@ void SwitecX12::updateDirections() {
 
 void SwitecX12::setTargetRotation(unsigned char motor, float rot)
 {
-    // Aggiungere un parametro per forzare il verso orario/antiorario
-    // Per ora prendo la più vicina
+    // Add a parameter to force clockwise/counter-clockwise direction
+    // For now I'll take the closest one
     setPosition(motor, rotationToSteps(rot));
 }
 

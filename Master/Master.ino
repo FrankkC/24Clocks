@@ -90,6 +90,11 @@ void loop() {
 
 }
 
+void sendCommandToSlaves(const char* command) {
+    slave1.sendCommand("CMD", command);
+    slave2.sendCommand("CMD", command);
+}
+
 void getTimeString(char* buffer) {
 
     unsigned int minutes = minutesSinceMidnight%60;
@@ -150,25 +155,20 @@ void handleWifiCommand() {
             countMode = false;
             WifiManager::sendData("SET COUNT MODE OFF OK");
         } else if (command.indexOf("SETMIN=0") != -1) {
-            slave1.sendCommand("CMD", "SETMIN=0");
-            slave2.sendCommand("CMD", "SETMIN=0");
+            sendCommandToSlaves("SETMIN=0");
             WifiManager::sendData("SETMIN=0 OK");
         } else if (command.indexOf("SETMIN=1") != -1) {
-            slave1.sendCommand("CMD", "SETMIN=1");
-            slave2.sendCommand("CMD", "SETMIN=1");
+            sendCommandToSlaves("SETMIN=1");
             WifiManager::sendData("SETMIN=1 OK");
         } else if (command.indexOf("SETHOU=0") != -1) {
-            slave1.sendCommand("CMD", "SETHOU=0");
-            slave2.sendCommand("CMD", "SETHOU=0");
+            sendCommandToSlaves("SETHOU=0");
             WifiManager::sendData("SETHOU=0 OK");
         } else if (command.indexOf("SETHOU=1") != -1) {
-            slave1.sendCommand("CMD", "SETHOU=1");
-            slave2.sendCommand("CMD", "SETHOU=1");
+            sendCommandToSlaves("SETHOU=1");
             WifiManager::sendData("SETHOU=1 OK");
         } else if (command.indexOf("SETSPIN=") != -1) {
             // TODO: Deactivate timeMode and countMode
-            slave1.sendCommand("CMD", command.c_str());
-            slave2.sendCommand("CMD", command.c_str());
+            sendCommandToSlaves(command.c_str());
             WifiManager::sendData("SET SPIN OK");
         } else if (command.indexOf("ECHO") != -1) {
             WifiManager::sendData("ECHO OK");
@@ -217,15 +217,13 @@ void setDisplayTime(const char* time) {
 
     char buffer [13];
     sprintf(buffer, "SETTIME=%s\0", time);
-    slave1.sendCommand("CMD", buffer);
-    slave2.sendCommand("CMD", buffer);
+    sendCommandToSlaves(buffer);
     
 }
 
 void setHome() {
     Serial.println("Going home...");
-    slave1.sendCommand("CMD", "SETHOME");
-    slave2.sendCommand("CMD", "SETHOME");
+    sendCommandToSlaves("SETHOME");
 }
 
 void setNTP() {

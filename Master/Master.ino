@@ -20,9 +20,19 @@ Step3: Functionality to adjust the position of the hands using telnet or the And
 
 #include <Arduino.h>
 #include "wifiManager.h"
-#include "serialLink.h"
+#include <serialLink.h>
 #include <ezTime.h>
 
+#define RXD1 18
+#define TXD1 19
+#define RXD2 16
+#define TXD2 17
+
+HardwareSerial SerialSlave1(1);
+HardwareSerial SerialSlave2(2);
+
+SerialLink slave1(SerialSlave1);
+SerialLink slave2(SerialSlave2);
 
 //int timer = 0;
 bool countMode = false;
@@ -42,7 +52,9 @@ void setup() {
     delay(1);
     Serial.println("Launching Master");
 
-    SerialLink::init();
+    SerialSlave1.begin(115200, SERIAL_8N1, RXD1, TXD1);
+    SerialSlave2.begin(115200, SERIAL_8N1, RXD2, TXD2);
+
     WifiManager::init([]() {
         setNTP();
     });
@@ -50,6 +62,9 @@ void setup() {
 }
 
 void loop() {
+
+    slave1.loop();
+    slave2.loop();
 
     /*if (!countMode && millis() > 10000) {
         countMode = true;
@@ -135,20 +150,25 @@ void handleWifiCommand() {
             countMode = false;
             WifiManager::sendData("SET COUNT MODE OFF OK");
         } else if (command.indexOf("SETMIN=0") != -1) {
-            SerialLink::sendCommand("SETMIN=0");
+            slave1.sendCommand("CMD", "SETMIN=0");
+            slave2.sendCommand("CMD", "SETMIN=0");
             WifiManager::sendData("SETMIN=0 OK");
         } else if (command.indexOf("SETMIN=1") != -1) {
-            SerialLink::sendCommand("SETMIN=1");
+            slave1.sendCommand("CMD", "SETMIN=1");
+            slave2.sendCommand("CMD", "SETMIN=1");
             WifiManager::sendData("SETMIN=1 OK");
         } else if (command.indexOf("SETHOU=0") != -1) {
-            SerialLink::sendCommand("SETHOU=0");
+            slave1.sendCommand("CMD", "SETHOU=0");
+            slave2.sendCommand("CMD", "SETHOU=0");
             WifiManager::sendData("SETHOU=0 OK");
         } else if (command.indexOf("SETHOU=1") != -1) {
-            SerialLink::sendCommand("SETHOU=1");
+            slave1.sendCommand("CMD", "SETHOU=1");
+            slave2.sendCommand("CMD", "SETHOU=1");
             WifiManager::sendData("SETHOU=1 OK");
         } else if (command.indexOf("SETSPIN=") != -1) {
             // TODO: Deactivate timeMode and countMode
-            SerialLink::sendCommand(command.c_str());
+            slave1.sendCommand("CMD", command.c_str());
+            slave2.sendCommand("CMD", command.c_str());
             WifiManager::sendData("SET SPIN OK");
         } else if (command.indexOf("ECHO") != -1) {
             WifiManager::sendData("ECHO OK");
@@ -197,13 +217,15 @@ void setDisplayTime(const char* time) {
 
     char buffer [13];
     sprintf(buffer, "SETTIME=%s\0", time);
-    SerialLink::sendCommand(buffer);
+    slave1.sendCommand("CMD", buffer);
+    slave2.sendCommand("CMD", buffer);
     
 }
 
 void setHome() {
     Serial.println("Going home...");
-    SerialLink::sendCommand("SETHOME");
+    slave1.sendCommand("CMD", "SETHOME");
+    slave2.sendCommand("CMD", "SETHOME");
 }
 
 void setNTP() {

@@ -1,8 +1,8 @@
 /*
 
-All'interno delle graffe più interne i numeri indicano la pozione che devono assumere le due lancente coassiali.
-Il primo valore deve essere utilizzato per la lancetta prossimale, il secondo per quella distale.
-Le abbiamo chiamate rispettivamente minutes e hours.
+Inside the innermost braces the numbers indicate the position that the two coaxial hands must assume.
+The first value must be used for the proximal hand, the second for the distal one.
+We have called them minutes and hours respectively.
 
 */
 

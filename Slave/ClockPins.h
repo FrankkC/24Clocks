@@ -14,16 +14,16 @@
 #define OFFSET_HOURS_HAND 0
 #define OFFSET_MINUTES_HAND 1
 
-// TODO: Controllare nomenclatura e/o assegnazione pin.
-// Credo siano invertiti, se è così vanno scambiati a coppie i parametri di ogni coassiale
+// TODO: Check pin nomenclature and/or assignment.
+// I think they are inverted, if so the parameters of each coaxial must be swapped in pairs
 
 /*
 
-Per ogni board ho in ordine i parametri delle lancette:
-- sinistra prossimale
-- sinistra distale
-- destra prossimale
-- destra distale
+For each board I have in order the parameters of the hands:
+- proximal left
+- distal left
+- proximal right
+- distal right
 
 */
 

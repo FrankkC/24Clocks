@@ -1,6 +1,6 @@
-// Serial0 e Serial3 disponibili
-// Serial1 occupata da collegamento board
-// Serial2 RX occupato da pin reset
+// Serial0 and Serial3 available
+// Serial1 occupied by board connection
+// Serial2 RX occupied by reset pin
 
 /*
 SLAVE:
@@ -10,7 +10,7 @@ Serial3 --> Master
 
 /*
 TODO:
-Step3: Funzionalità per regolare la posizione delle lancette e comunicazione con WiFi e App Android
+Step3: Functionality to adjust the position of the hands using telnet or the Android app
 */
 
 #include <Arduino.h>
@@ -29,7 +29,7 @@ constexpr uint8_t CONNECTED_BOARDS = 6;
 
 String commandBuffer;
 
-// Should be set to 0 for the left slave and 1 for the right slave
+// Must be set to 0 for the left slave and 1 for the right slave
 constexpr uint8_t slaveOffset = 1;
 
 bool hoursHandsActive = true;
@@ -44,7 +44,7 @@ Bit 1: spin hours hand
 Bit 2: cw/ccw (0/1) minutes hand direction
 Bit 3: cw/ccw (0/1) hours hand direction
 
-ES:
+E.g.:
 0000 --> spinMode = 0 --> no spin
 0001 --> spinMode = 1 --> spin minutes hand clockwise
 1111 --> spinMode = 15 --> spin both hands counter clockwise
@@ -120,10 +120,10 @@ void handleSerialCommand(HardwareSerial* serialLink) {
             } else if (command.startsWith("SETSPIN=")) {
                 String spinCommand = command.substring(8);
 
-                // Il primo carattere (il più a sinistra) è il più significativo.
+                // The first character (the leftmost) is the most significant.
                 spinMode = ((spinCommand.charAt(0) == '1') << 3) | ((spinCommand.charAt(1) == '1') << 2) | ((spinCommand.charAt(2) == '1') << 1) | (spinCommand.charAt(3) == '1');
 
-                // TODO: Leggere appropriatamente lo spinMode nell'update
+                // TODO: Read the spinMode appropriately in the update
 
                 //setLocalDisplayTime(newTime.c_str());
             }

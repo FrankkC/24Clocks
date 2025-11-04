@@ -19,7 +19,7 @@ Step3: Functionality to adjust the position of the hands using telnet or the And
 #include "ClockPins.h"
 #include <serialLink.h>
 
-#define MASTER Serial3
+#define MASTER Serial
 
 constexpr uint16_t STEPS = 360 * 12;
 constexpr uint8_t RESETPIN = 17;
@@ -55,31 +55,10 @@ int spinMode = 0;
 
 SwitecX12 boards[CONNECTED_BOARDS];
 
-void handleCommand(const char* rawCommand) {
-    String command = String(rawCommand);
-    Serial.println("commandCallback: " + command);
-
-    if (command.startsWith("CMD")) {
-        String cmd = command.substring(3);
-        if (cmd.startsWith("SETTIME=")) {
-            String newTime = cmd.substring(8);
-            setLocalDisplayTime(newTime.c_str());
-        } else if (cmd.startsWith("SETHOME")) {
-            setLocalHome();
-        } else if (cmd.startsWith("SETMIN=0")) {
-            minutesHandsActive = false;
-        } else if (cmd.startsWith("SETMIN=1")) {
-            minutesHandsActive = true;
-        } else if (cmd.startsWith("SETHOU=0")) {
-            hoursHandsActive = false;
-        } else if (cmd.startsWith("SETHOU=1")) {
-            hoursHandsActive = true;
-        } else if (cmd.startsWith("SETSPIN=")) {
-            String spinCommand = cmd.substring(8);
-            spinMode = ((spinCommand.charAt(0) == '1') << 3) | ((spinCommand.charAt(1) == '1') << 2) | ((spinCommand.charAt(2) == '1') << 1) | (spinCommand.charAt(3) == '1');
-        }
-    }
-}
+void addBoard(char boardIndex);
+void handleCommand(const char* rawCommand);
+void setLocalDisplayTime(const char* time);
+void setLocalHome();
 
 void setup() {
 
@@ -122,8 +101,6 @@ void loop() {
 
 }
 
-
-
 void addBoard(char boardIndex) {
 
     unsigned char pinStep[4];
@@ -138,6 +115,32 @@ void addBoard(char boardIndex) {
     
     boards[boardIndex] = SwitecX12(STEPS, pinStep, pinDir, reversed);
 
+}
+
+void handleCommand(const char* rawCommand) {
+    String command = String(rawCommand);
+    Serial.println("commandCallback: " + command);
+
+    if (command.startsWith("CMD")) {
+        String cmd = command.substring(3);
+        if (cmd.startsWith("SETTIME=")) {
+            String newTime = cmd.substring(8);
+            setLocalDisplayTime(newTime.c_str());
+        } else if (cmd.startsWith("SETHOME")) {
+            setLocalHome();
+        } else if (cmd.startsWith("SETMIN=0")) {
+            minutesHandsActive = false;
+        } else if (cmd.startsWith("SETMIN=1")) {
+            minutesHandsActive = true;
+        } else if (cmd.startsWith("SETHOU=0")) {
+            hoursHandsActive = false;
+        } else if (cmd.startsWith("SETHOU=1")) {
+            hoursHandsActive = true;
+        } else if (cmd.startsWith("SETSPIN=")) {
+            String spinCommand = cmd.substring(8);
+            spinMode = ((spinCommand.charAt(0) == '1') << 3) | ((spinCommand.charAt(1) == '1') << 2) | ((spinCommand.charAt(2) == '1') << 1) | (spinCommand.charAt(3) == '1');
+        }
+    }
 }
 
 void setLocalDisplayTime(const char* time) {

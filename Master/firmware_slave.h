@@ -1,8 +1,8 @@
-#ifndef FIRMWARE_SLAVE2_H
-#define FIRMWARE_SLAVE2_H
+#ifndef FIRMWARE_SLAVE_H
+#define FIRMWARE_SLAVE_H
 
-// Replace the content below with the actual .hex file for Slave 2
-const char firmware_slave2_hex[] =
+// Replace the content below with the actual .hex file for Slave 1
+const char firmware_slave_hex[] =
     ":100000000C9434000C945C000C945C000C945C0052\n"
     ":100010000C945C000C945C000C945C000C945C0030\n"
     ":100020000C945C000C945C000C945C000C945C0020\n"
@@ -17,4 +17,4 @@ const char firmware_slave2_hex[] =
     ":0400000300000100F8\n"
     ":00000001FF\n";
 
-#endif // FIRMWARE_SLAVE2_H
+#endif // FIRMWARE_SLAVE_H

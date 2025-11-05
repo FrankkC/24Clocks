@@ -141,7 +141,8 @@ void handleCommand(const char* rawCommand) {
             uint8_t newOffset = offsetStr.toInt();
             if (newOffset == 0 || newOffset == 1) {
                 slaveOffset = newOffset;
-                Serial.printf("Slave offset set to: %d\n", slaveOffset);
+                Serial.print("Slave offset set to: ");
+                Serial.println(slaveOffset);
             } else {
                 Serial.println("Invalid slave offset received.");
             }
@@ -153,6 +154,9 @@ void handleCommand(const char* rawCommand) {
 }
 
 void setLocalDisplayTime(const char* time) {
+    if (slaveOffset != 0 && slaveOffset != 1) {
+        return;
+    }
     for (int i = 0; i < CONNECTED_BOARDS; i++) {
 
         int timeDigit = (i/3) * 2 + slaveOffset;

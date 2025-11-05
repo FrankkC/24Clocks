@@ -27,6 +27,7 @@ private:
     // STK500 Commands and constants
     static const uint8_t STK_OK = 0x10;
     static const uint8_t STK_INSYNC = 0x14;
+    static const uint8_t STK_GET_SYNC = 0x30;
     static const uint8_t STK_GET_PARAMETER = 0xA1;
     static const uint8_t STK_SET_DEVICE = 0xB6;
     static const uint8_t STK_ENTER_PROGMODE = 0x50;

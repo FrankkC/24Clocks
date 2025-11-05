@@ -130,8 +130,6 @@ void flashSlave(int slaveNum) {
 
     HardwareSerial* slaveSerial = nullptr;
     int resetPin = -1;
-    const char* firmware_data = nullptr;
-    size_t firmware_size = 0;
     
     if (slaveNum == 1) {
         // IMPORTANT: End the serial port to release it from SerialLink before flashing
@@ -147,10 +145,9 @@ void flashSlave(int slaveNum) {
         resetPin = SLAVE2_RESET_PIN;
     }
 
-    if (slaveSerial && resetPin != -1 && firmware_data != nullptr) {
-
-        firmware_data = firmware_slave_hex;
-        firmware_size = sizeof(firmware_slave_hex);
+    if (slaveSerial && resetPin != -1) {
+        const char* firmware_data = firmware_slave_hex;
+        size_t firmware_size = sizeof(firmware_slave_hex);
 
         AVRFlasher flasher(*slaveSerial, resetPin);
         bool success = flasher.flash((const uint8_t*)firmware_data, firmware_size);

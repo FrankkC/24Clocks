@@ -23,8 +23,7 @@ Step3: Functionality to adjust the position of the hands using telnet or the And
 #include <serialLink.h>
 #include <ezTime.h>
 #include "AVRFlasher.h"
-#include "firmware_slave1.h"
-#include "firmware_slave2.h"
+#include "firmware_slave.h"
 
 // -- Flasher Configuration --
 #define SLAVE1_RESET_PIN 25
@@ -58,6 +57,7 @@ const uint32_t oneDaySeconds = 24*60*60;
 const uint32_t oneDayMillis = oneDaySeconds*1000;
 
 void flashSlave(int slaveNum);
+void readAndPrintSlaveSerial(HardwareSerial& slaveSerial, int slaveNum);
 void sendCommandToSlaves(const char* command);
 void getTimeString(char* buffer);
 void handleWifiCommand();
@@ -81,6 +81,11 @@ void setup() {
     SerialSlave1.begin(115200, SERIAL_8N1, RXD1, TXD1);
     SerialSlave2.begin(115200, SERIAL_8N1, RXD2, TXD2);
 
+    // Set slave offsets
+    sendCommandToSpecificSlave(1, "SETSLAVEOFFSET=0");
+    sendCommandToSpecificSlave(2, "SETSLAVEOFFSET=1");
+    delay(100); // Give slaves time to process the command
+
     WifiManager::init([]() {
         setNTP();
     });
@@ -91,6 +96,9 @@ void loop() {
 
     slave1.loop();
     slave2.loop();
+
+    readAndPrintSlaveSerial(SerialSlave1, 1);
+    readAndPrintSlaveSerial(SerialSlave2, 2);
 
     /*if (!countMode && millis() > 10000) {
         countMode = true;
@@ -131,19 +139,19 @@ void flashSlave(int slaveNum) {
         SerialSlave1.end();
         slaveSerial = &SerialSlave1;
         resetPin = SLAVE1_RESET_PIN;
-        firmware_data = firmware_slave1_hex;
-        firmware_size = sizeof(firmware_slave1_hex);
     } else if (slaveNum == 2) {
         // IMPORTANT: End the serial port to release it from SerialLink before flashing
         Serial.println("Pausing communication on SerialSlave2...");
         SerialSlave2.end();
         slaveSerial = &SerialSlave2;
         resetPin = SLAVE2_RESET_PIN;
-        firmware_data = firmware_slave2_hex;
-        firmware_size = sizeof(firmware_slave2_hex);
     }
 
     if (slaveSerial && resetPin != -1 && firmware_data != nullptr) {
+
+        firmware_data = firmware_slave_hex;
+        firmware_size = sizeof(firmware_slave_hex);
+
         AVRFlasher flasher(*slaveSerial, resetPin);
         bool success = flasher.flash((const uint8_t*)firmware_data, firmware_size);
 
@@ -164,10 +172,24 @@ void flashSlave(int slaveNum) {
     }
 }
 
+void readAndPrintSlaveSerial(HardwareSerial& slaveSerial, int slaveNum) {
+    while (slaveSerial.available()) {
+        Serial.printf("[SLAVE%d] %c", slaveNum, (char)slaveSerial.read());
+    }
+}
+
 
 void sendCommandToSlaves(const char* command) {
     slave1.sendCommand("CMD", command);
     slave2.sendCommand("CMD", command);
+}
+
+void sendCommandToSpecificSlave(int slaveNum, const char* command) {
+    if (slaveNum == 1) {
+        slave1.sendCommand("CMD", command);
+    } else if (slaveNum == 2) {
+        slave2.sendCommand("CMD", command);
+    }
 }
 
 void getTimeString(char* buffer) {

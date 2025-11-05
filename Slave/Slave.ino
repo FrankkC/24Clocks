@@ -31,7 +31,7 @@ SerialLink masterLink(MASTER);
 SerialLink cliLink(Serial);
 
 // Must be set to 0 for the left slave and 1 for the right slave
-constexpr uint8_t slaveOffset = 1;
+uint8_t slaveOffset = 255; // Default to an invalid value, will be set by Master
 
 bool hoursHandsActive = true;
 bool minutesHandsActive = true;
@@ -136,6 +136,15 @@ void handleCommand(const char* rawCommand) {
             hoursHandsActive = false;
         } else if (cmd.startsWith("SETHOU=1")) {
             hoursHandsActive = true;
+        } else if (cmd.startsWith("SETSLAVEOFFSET=")) {
+            String offsetStr = cmd.substring(15);
+            uint8_t newOffset = offsetStr.toInt();
+            if (newOffset == 0 || newOffset == 1) {
+                slaveOffset = newOffset;
+                Serial.printf("Slave offset set to: %d\n", slaveOffset);
+            } else {
+                Serial.println("Invalid slave offset received.");
+            }
         } else if (cmd.startsWith("SETSPIN=")) {
             String spinCommand = cmd.substring(8);
             spinMode = ((spinCommand.charAt(0) == '1') << 3) | ((spinCommand.charAt(1) == '1') << 2) | ((spinCommand.charAt(2) == '1') << 1) | (spinCommand.charAt(3) == '1');

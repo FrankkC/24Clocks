@@ -281,7 +281,7 @@ void handleWifiCommand() {
             char timeStr[5];
             getTimeString(timeStr);
             WifiManager::sendData("timeStr=" + String(timeStr));
-        } else if (command.startsWith("flash")) {
+        } else if (command.startsWith("FLASH")) {
             int slaveNum = command.substring(6).toInt();
             if (slaveNum == 1 || slaveNum == 2) {
                 Serial.printf("Received WiFi flash command for slave %d\n", slaveNum);

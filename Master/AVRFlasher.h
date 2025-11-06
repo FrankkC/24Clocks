@@ -6,7 +6,7 @@
 class AVRFlasher {
 public:
     // Constructor takes the serial port for slaves and the reset pin for the specific slave
-    AVRFlasher(HardwareSerial& serial, int reset_pin);
+    AVRFlasher(HardwareSerial& serial, int reset_pin, int rx_pin, int tx_pin);
 
     // Flashes the firmware. The firmware is a byte array containing the Intel HEX data.
     bool flash(const uint8_t* firmware, size_t size);
@@ -14,6 +14,8 @@ public:
 private:
     HardwareSerial& _serial;
     int _reset_pin;
+    int _rx_pin;
+    int _tx_pin;
 
     void resetTarget();
     bool sync();

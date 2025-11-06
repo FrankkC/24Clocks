@@ -33,10 +33,10 @@ Step3: Functionality to adjust the position of the hands using telnet or the And
 // -- End of Flasher Configuration --
 
 
-#define RXD1 18
-#define TXD1 19
-#define RXD2 16
-#define TXD2 17
+#define RXD1 32
+#define TXD1 33
+#define RXD2 35
+#define TXD2 34
 
 HardwareSerial SerialSlave1(1);
 HardwareSerial SerialSlave2(2);
@@ -57,7 +57,6 @@ const uint32_t oneDaySeconds = 24*60*60;
 const uint32_t oneDayMillis = oneDaySeconds*1000;
 
 void flashSlave(int slaveNum);
-void readAndPrintSlaveSerial(HardwareSerial& slaveSerial, int slaveNum);
 void sendCommandToSlaves(const char* command);
 void getTimeString(char* buffer);
 void handleWifiCommand();
@@ -81,6 +80,9 @@ void setup() {
     SerialSlave1.begin(115200, SERIAL_8N1, RXD1, TXD1);
     SerialSlave2.begin(115200, SERIAL_8N1, RXD2, TXD2);
 
+    slave1.setCommandCallback(handleSlaveMessage1);
+    slave2.setCommandCallback(handleSlaveMessage2);
+
     // Set slave offsets
     sendCommandToSpecificSlave(1, "SETSLAVEOFFSET=0");
     sendCommandToSpecificSlave(2, "SETSLAVEOFFSET=1");
@@ -96,9 +98,6 @@ void loop() {
 
     slave1.loop();
     slave2.loop();
-
-    readAndPrintSlaveSerial(SerialSlave1, 1);
-    readAndPrintSlaveSerial(SerialSlave2, 2);
 
     /*if (!countMode && millis() > 10000) {
         countMode = true;
@@ -124,12 +123,14 @@ void loop() {
 
 }
 
-
 void flashSlave(int slaveNum) {
+    Serial.println("flashSlave");
     Serial.printf("--- Starting flash process for slave %d ---\n", slaveNum);
 
     HardwareSerial* slaveSerial = nullptr;
     int resetPin = -1;
+    int rxPin = -1;
+    int txPin = -1;
     
     if (slaveNum == 1) {
         // IMPORTANT: End the serial port to release it from SerialLink before flashing
@@ -137,19 +138,23 @@ void flashSlave(int slaveNum) {
         SerialSlave1.end();
         slaveSerial = &SerialSlave1;
         resetPin = SLAVE1_RESET_PIN;
+        rxPin = RXD1;
+        txPin = TXD1;
     } else if (slaveNum == 2) {
         // IMPORTANT: End the serial port to release it from SerialLink before flashing
         Serial.println("Pausing communication on SerialSlave2...");
         SerialSlave2.end();
         slaveSerial = &SerialSlave2;
         resetPin = SLAVE2_RESET_PIN;
+        rxPin = RXD2;
+        txPin = TXD2;
     }
 
     if (slaveSerial && resetPin != -1) {
         const char* firmware_data = firmware_slave_hex;
         size_t firmware_size = sizeof(firmware_slave_hex);
 
-        AVRFlasher flasher(*slaveSerial, resetPin);
+        AVRFlasher flasher(*slaveSerial, resetPin, rxPin, txPin);
         bool success = flasher.flash((const uint8_t*)firmware_data, firmware_size);
 
         if (success) {
@@ -169,12 +174,19 @@ void flashSlave(int slaveNum) {
     }
 }
 
-void readAndPrintSlaveSerial(HardwareSerial& slaveSerial, int slaveNum) {
-    while (slaveSerial.available()) {
-        Serial.printf("[SLAVE%d] %c", slaveNum, (char)slaveSerial.read());
-    }
+void handleSlaveMessage1(const char* rawCommand) {
+    Serial.println("handleSlaveMessage1");
+    handleSlaveMessage(rawCommand, 1);
 }
 
+void handleSlaveMessage2(const char* rawCommand) {
+    Serial.println("handleSlaveMessage2");
+    handleSlaveMessage(rawCommand, 2);
+}
+
+void handleSlaveMessage(const char* rawCommand, int slaveNum) {
+    Serial.printf("[SLAVE %d] %s\n", slaveNum, rawCommand);
+}
 
 void sendCommandToSlaves(const char* command) {
     slave1.sendCommand("CMD", command);
@@ -221,7 +233,6 @@ void handleWifiCommand() {
 
             // Set timeoffset to this value
             setTimeInSeconds(newTimeInSeconds);
-            setDisplayTime(newTime.c_str());
 
             // Set timeMode = true to start updating the hands position
             timeMode = true;
@@ -292,6 +303,9 @@ void handleWifiCommand() {
             } else {
                 WifiManager::sendData("Invalid slave number. Use 1 or 2.");
             }
+        } else if (command.indexOf("SETLED") != -1) {
+            sendCommandToSlaves(command.c_str());
+            WifiManager::sendData("SETLED OK");
         } else {
             WifiManager::sendData("UNKNOWN COMMAND");
         }

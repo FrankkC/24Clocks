@@ -1,7 +1,8 @@
 #include "AVRFlasher.h"
 #include <Arduino.h>
 
-AVRFlasher::AVRFlasher(HardwareSerial& serial, int reset_pin) : _serial(serial), _reset_pin(reset_pin) {}
+AVRFlasher::AVRFlasher(HardwareSerial& serial, int reset_pin, int rx_pin, int tx_pin) : _serial(serial), _reset_pin(reset_pin), _rx_pin(rx_pin), _tx_pin(tx_pin) {
+}
 
 void AVRFlasher::resetTarget() {
     pinMode(_reset_pin, OUTPUT);
@@ -15,7 +16,7 @@ void AVRFlasher::resetTarget() {
 
 // Main public method to start flashing
 bool AVRFlasher::flash(const uint8_t* firmware, size_t size) {
-    _serial.begin(115200);
+    _serial.begin(115200, SERIAL_8N1, _rx_pin, _tx_pin);
     resetTarget();
 
     if (!sync()) {

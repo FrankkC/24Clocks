@@ -28,7 +28,6 @@ constexpr uint8_t RESETPIN = 17;
 constexpr uint8_t CONNECTED_BOARDS = 6;
 
 SerialLink masterLink(MASTER);
-SerialLink cliLink(Serial);
 
 // Must be set to 0 for the left slave and 1 for the right slave
 uint8_t slaveOffset = 255; // Default to an invalid value, will be set by Master
@@ -62,9 +61,10 @@ void setLocalHome();
 
 void setup() {
 
+    pinMode(LED_BUILTIN, OUTPUT);
+
     Serial.begin(115200);
-    delay(1000);
-    Serial.println("Launching Slave");
+    delay(1);
 
     pinMode(RESETPIN, OUTPUT);
     digitalWrite(RESETPIN, HIGH);
@@ -85,8 +85,11 @@ void setup() {
     }
 
     MASTER.begin(115200);
+    delay(1);
+
     masterLink.setCommandCallback(handleCommand);
-    cliLink.setCommandCallback(handleCommand);
+
+    masterLink.sendCommand("MSG_","Launching Slave");
 
 }
 
@@ -97,7 +100,6 @@ void loop() {
     }
 
     masterLink.loop();
-    cliLink.loop();
 
 }
 
@@ -118,8 +120,10 @@ void addBoard(char boardIndex) {
 }
 
 void handleCommand(const char* rawCommand) {
+
+    masterLink.sendCommand("MSG_",rawCommand);
+
     String command = String(rawCommand);
-    Serial.println("commandCallback: " + command);
 
     if (command.startsWith("CMD")) {
         String cmd = command.substring(3);
@@ -141,14 +145,17 @@ void handleCommand(const char* rawCommand) {
             uint8_t newOffset = offsetStr.toInt();
             if (newOffset == 0 || newOffset == 1) {
                 slaveOffset = newOffset;
-                Serial.print("Slave offset set to: ");
-                Serial.println(slaveOffset);
+                masterLink.sendCommand("MSG_","slaveOffset: "+slaveOffset);
             } else {
-                Serial.println("Invalid slave offset received.");
+                masterLink.sendCommand("MSG_","Invalid slave offset received");
             }
         } else if (cmd.startsWith("SETSPIN=")) {
             String spinCommand = cmd.substring(8);
             spinMode = ((spinCommand.charAt(0) == '1') << 3) | ((spinCommand.charAt(1) == '1') << 2) | ((spinCommand.charAt(2) == '1') << 1) | (spinCommand.charAt(3) == '1');
+        } else if (cmd.startsWith("SETLED=1")) {
+            digitalWrite(LED_BUILTIN, HIGH);
+        } else if (cmd.startsWith("SETLED=0")) {
+            digitalWrite(LED_BUILTIN, LOW);
         }
     }
 }

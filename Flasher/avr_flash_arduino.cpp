@@ -68,7 +68,7 @@ static void init_avr_uart()
 static void init_avr_uart() { /* no-op on non-ESP32 */ }
 #endif
 
-static bool avr_expect_in_sync_ok(const char* step, unsigned long timeout_ms = SERIAL_TIMEOUT_MS, bool verbose = true);
+static bool avr_expect_in_sync_ok(const char* step, unsigned long timeout_ms = SERIAL_TIMEOUT_MS, bool verbose = false);
 static bool avr_exec_param(uint8_t cmd, const uint8_t* params, size_t count, const char* step);
 static void avr_reset_sequence();
 static bool avr_set_prog_params();
@@ -175,7 +175,7 @@ static bool avr_exec_param(uint8_t cmd, const uint8_t* params, size_t count, con
     uint8_t eop = Sync_CRC_EOP;
     sendData(&eop, 1);
 
-    return avr_expect_in_sync_ok(step, SERIAL_TIMEOUT_MS, true);
+    return avr_expect_in_sync_ok(step, SERIAL_TIMEOUT_MS);
 }
 
 static void avr_reset_sequence() {
@@ -230,7 +230,7 @@ static bool avr_get_sync() {
     uint8_t cmd[] = {Cmnd_STK_GET_SYNC, Sync_CRC_EOP};
     for (int retries = 0; retries < 5; retries++) {
         sendData(cmd, sizeof(cmd));
-        if (avr_expect_in_sync_ok("Sync attempt", 200, true)) {
+        if (avr_expect_in_sync_ok("Sync attempt", 200)) {
             return true;
         }
         delay(20);
@@ -242,14 +242,14 @@ static bool avr_enter_progmode() {
     flushSerial();
     uint8_t cmd[] = {Cmnd_STK_ENTER_PROGMODE, Sync_CRC_EOP};
     sendData(cmd, sizeof(cmd));
-    return avr_expect_in_sync_ok("Enter progmode", 200, true);
+    return avr_expect_in_sync_ok("Enter progmode", 200);
 }
 
 static bool avr_leave_progmode() {
     flushSerial();
     uint8_t cmd[] = {Cmnd_STK_LEAVE_PROGMODE, Sync_CRC_EOP};
     sendData(cmd, sizeof(cmd));
-    return avr_expect_in_sync_ok("Leave progmode", 200, true);
+    return avr_expect_in_sync_ok("Leave progmode", 200);
 }
 
 static bool avr_setup_device() {
@@ -323,7 +323,7 @@ static bool avr_flash_page(uint8_t* data, size_t size) {
 
     // Diagnostic: dump the packet we're about to send (header + first bytes)
     // so we can compare what was sent vs what is read back from the AVR.
-    {
+    /*{
         const size_t DUMP_LEN = 64;
         size_t hdr_len = sizeof(cmd_header);
         size_t total_len = hdr_len + ((size < DUMP_LEN) ? size : DUMP_LEN);
@@ -338,12 +338,12 @@ static bool avr_flash_page(uint8_t* data, size_t size) {
             Serial.printf("%02X ", data[p]);
         }
         Serial.println();
-    }
+    }*/
 
     uint8_t eop[] = {Sync_CRC_EOP};
     sendData(eop, sizeof(eop));
 
-    bool ok = avr_expect_in_sync_ok("Flash page", SERIAL_TIMEOUT_MS, true);
+    bool ok = avr_expect_in_sync_ok("Flash page", SERIAL_TIMEOUT_MS);
     if (ok) {
         // Give the AVR significantly more time to finish the actual flash
         // write before proceeding. The esp-idf version effectively waits
@@ -583,7 +583,7 @@ bool flash_avr_firmware(const char* firmware_hex) {
             // Additional diagnostics: dump a larger window of expected vs actual and
             // retry a direct read after a longer delay to see if the AVR finishes
             // the internal write slightly later.
-            {
+            /*{
                 size_t dump_len = (chunk < 64) ? chunk : 64;
                 Serial.print("Dump expected (first "); Serial.print(dump_len); Serial.println(" bytes of page):");
                 for (size_t k = 0; k < dump_len; ++k) Serial.printf("%02X ", firmware_image[i + k]);
@@ -606,7 +606,7 @@ bool flash_avr_firmware(const char* firmware_hex) {
                     for (size_t k = 0; k < dump_len; ++k) Serial.printf("%02X ", retry_buffer[k]);
                     Serial.println();
                 }
-            }
+            }*/
             Serial.println("Verification failed at page.");
             avr_leave_progmode();
             heap_caps_free(firmware_image);

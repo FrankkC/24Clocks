@@ -1,7 +1,8 @@
 {
-    "port": "/dev/tty.usbserial-1310",
     "configuration": "JTAGAdapter=default,PSRAM=disabled,PartitionScheme=default,CPUFreq=240,FlashMode=qio,FlashFreq=80,FlashSize=4M,UploadSpeed=460800,LoopCore=1,EventsCore=1,DebugLevel=none,EraseFlash=none,ZigbeeMode=default",
     "board": "esp32:esp32:esp32",
     "programmer": "esptool",
-    "sketch": "esp32_avr_flasher.ino"
+    "port": "/dev/tty.usbserial-1310",
+    "sketch": "Flasher.ino",
+    "output": "build"
 }

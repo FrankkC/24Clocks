@@ -12,7 +12,7 @@ NC='\033[0m' # No Color
 
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 SLAVE_DIR="$PROJECT_ROOT/Slave"
-FLASHER_DIR="$PROJECT_ROOT/esp32_avr_flasher"
+FLASHER_DIR="$PROJECT_ROOT/Flasher"
 TOOLS_DIR="$PROJECT_ROOT/tools"
 
 echo -e "${YELLOW}=== 24Clocks Flasher Build Script ===${NC}\n"
@@ -47,12 +47,12 @@ fi
 echo -e "${GREEN}✓ Header file generated and copied to flasher${NC}\n"
 
 # Step 3: Compile Flasher
-echo -e "${YELLOW}[3/4] Compiling ESP32 AVR Flasher for ESP32...${NC}"
+echo -e "${YELLOW}[3/4] Compiling Flasher for ESP32...${NC}"
 cd "$FLASHER_DIR"
 arduino-cli compile \
     --fqbn esp32:esp32:esp32:JTAGAdapter=default,PSRAM=disabled,PartitionScheme=default,CPUFreq=240,FlashMode=qio,FlashFreq=80,FlashSize=4M,UploadSpeed=460800,LoopCore=1,EventsCore=1,DebugLevel=none,EraseFlash=none,ZigbeeMode=default \
     --output-dir build \
-    esp32_avr_flasher.ino
+    Flasher.ino
 
 echo -e "${GREEN}✓ Flasher compiled successfully${NC}\n"
 
@@ -62,13 +62,13 @@ arduino-cli upload \
     --fqbn esp32:esp32:esp32:UploadSpeed=460800 \
     --port /dev/tty.usbserial-1310 \
     --input-dir build \
-    esp32_avr_flasher.ino
+    Flasher.ino
 
 echo -e "${GREEN}✓ Flasher uploaded successfully${NC}\n"
 
 # Summary
 echo -e "${GREEN}=== Build and upload completed successfully! ===${NC}"
 echo -e "Slave firmware: ${SLAVE_DIR}/build/Slave.ino.hex"
-echo -e "Flasher firmware: ${FLASHER_DIR}/build/esp32_avr_flasher.ino.bin"
+echo -e "Flasher firmware: ${FLASHER_DIR}/build/Flasher.ino.bin"
 echo -e "Header file: ${FLASHER_DIR}/firmware_slave.h"
 echo -e "Uploaded to: /dev/tty.usbserial-1310"

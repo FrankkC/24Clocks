@@ -1,3 +1,11 @@
+/*
+ * AVR Flash Library for ESP32
+ * Implements STK500 protocol to flash ATmega2560
+ * 
+ * Based on code from Laukik Hase's project:
+ * https://github.com/ESP32-Musings/OTA_update_AVR_using_ESP32
+ */
+
 #include "avr_flash_arduino.h"
 #include "firmware_slave.h"
 #include <HardwareSerial.h>

@@ -72,3 +72,11 @@ echo -e "Slave firmware: ${SLAVE_DIR}/build/Slave.ino.hex"
 echo -e "Flasher firmware: ${FLASHER_DIR}/build/Flasher.ino.bin"
 echo -e "Header file: ${FLASHER_DIR}/firmware_slave.h"
 echo -e "Uploaded to: /dev/tty.usbserial-1310"
+
+# Step 5: Open Serial Monitor
+echo -e "\n${YELLOW}[5/5] Opening serial monitor...${NC}"
+echo -e "${YELLOW}Press CTRL+C to exit monitor${NC}\n"
+sleep 2  # Give time to read the message
+
+# Use arduino-cli monitor for better formatting
+arduino-cli monitor --port /dev/tty.usbserial-1310 --config baudrate=115200

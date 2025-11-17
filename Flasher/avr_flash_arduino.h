@@ -14,10 +14,21 @@
 #define MAX_FIRMWARE_SIZE 262144  // ATmega2560 flash size
 
 /**
+ * Configuration structure for AVR flashing pins
+ */
+struct AVRFlashConfig {
+    uint8_t reset_pin;
+    uint8_t tx_pin;
+    uint8_t rx_pin;
+    uart_port_t uart_num;
+};
+
+/**
  * Flash firmware to AVR using STK500 protocol
  * @param firmware_hex Intel HEX format firmware as null-terminated string
+ * @param config Pin configuration for the target AVR
  * @return true if successful, false otherwise
  */
-bool flash_avr_firmware(const char* firmware_hex);
+bool flash_avr_firmware(const char* firmware_hex, const AVRFlashConfig& config);
 
 #endif

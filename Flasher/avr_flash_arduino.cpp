@@ -8,19 +8,17 @@
 
 #include "avr_flash_arduino.h"
 #include "firmware_slave.h"
-#include <HardwareSerial.h>
 #include "esp_heap_caps.h"
-
-// Use esp-idf UART and FreeRTOS APIs on ESP32 to match timing/behavior of the esp-idf port
-#ifdef ARDUINO_ARCH_ESP32
 #include "driver/uart.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#endif
+
 
 // --- CONFIGURAZIONE ---
-#define AVR_RESET_PIN 25 
 #define BLOCK_SIZE 256      // Dimensione pagina di flash dell'AVR
+
+// Global configuration for current flash operation
+static AVRFlashConfig g_current_config;
 
 // --- COSTANTI PROTOCOLLO STK500 ---
 const uint8_t STK_OK = 0x10;
@@ -41,21 +39,13 @@ const uint8_t Cmnd_STK_SET_DEVICE_EXT = 0x45;
 const unsigned long SERIAL_TIMEOUT_MS = 2000;
 const int MAX_SETUP_ATTEMPTS = 10;
 
-// Keep Serial2 available for simple prints
-static HardwareSerial &avrSerial = Serial2; // debug only
-
-#ifdef ARDUINO_ARCH_ESP32
 // UART driver configuration matching esp-idf implementation
-#define AVR_UART_NUM UART_NUM_1
-#define AVR_UART_TX_PIN 33
-#define AVR_UART_RX_PIN 32
 #define AVR_UART_RX_BUF_SIZE 2048
 
 static void init_avr_uart()
 {
-    static bool inited = false;
-    if (inited)
-        return;
+    // Uninstall previous UART driver if it exists
+    uart_driver_delete(g_current_config.uart_num);
 
     uart_config_t uart_config = {
         .baud_rate = 115200,
@@ -66,15 +56,10 @@ static void init_avr_uart()
         .source_clk = UART_SCLK_APB,
     };
 
-    uart_param_config(AVR_UART_NUM, &uart_config);
-    uart_set_pin(AVR_UART_NUM, AVR_UART_TX_PIN, AVR_UART_RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
-    uart_driver_install(AVR_UART_NUM, AVR_UART_RX_BUF_SIZE * 2, 0, 0, NULL, 0);
-
-    inited = true;
+    uart_param_config(g_current_config.uart_num, &uart_config);
+    uart_set_pin(g_current_config.uart_num, g_current_config.tx_pin, g_current_config.rx_pin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    uart_driver_install(g_current_config.uart_num, AVR_UART_RX_BUF_SIZE * 2, 0, 0, NULL, 0);
 }
-#else
-static void init_avr_uart() { /* no-op on non-ESP32 */ }
-#endif
 
 static bool avr_expect_in_sync_ok(const char* step, unsigned long timeout_ms = SERIAL_TIMEOUT_MS, bool verbose = false);
 static bool avr_exec_param(uint8_t cmd, const uint8_t* params, size_t count, const char* step);
@@ -88,20 +73,13 @@ static void log_verification_mismatch(int absolute_offset, const uint8_t* expect
 
 // --- FUNZIONI DI COMUNICAZIONE UART ---
 
-#ifdef ARDUINO_ARCH_ESP32
 static void sendData(const uint8_t* data, size_t size) {
     // Use uart driver write (blocks until queued)
-    uart_write_bytes(AVR_UART_NUM, (const char*)data, size);
+    uart_write_bytes(g_current_config.uart_num, (const char*)data, size);
     // Ensure data is pushed out of UART HAL FIFO
-    uart_wait_tx_done(AVR_UART_NUM, pdMS_TO_TICKS(100));
+    uart_wait_tx_done(g_current_config.uart_num, pdMS_TO_TICKS(100));
 }
-#else
-static void sendData(const uint8_t* data, size_t size) {
-    avrSerial.write(data, size);
-    avrSerial.flush();
-}
-#endif
-#ifdef ARDUINO_ARCH_ESP32
+
 static int receiveData(uint8_t* buffer, size_t size, unsigned long timeout_ms) {
     // Use a buffered-wait similar to the esp-idf implementation: poll the
     // UART driver's buffered-data length until we have the expected number of
@@ -112,7 +90,7 @@ static int receiveData(uint8_t* buffer, size_t size, unsigned long timeout_ms) {
     unsigned long start = millis();
     size_t available = 0;
     while ((millis() - start) < timeout_ms) {
-        uart_get_buffered_data_len(AVR_UART_NUM, &available);
+        uart_get_buffered_data_len(g_current_config.uart_num, &available);
         if (available >= size) break;
         // yield like esp-idf (small delay)
         vTaskDelay(pdMS_TO_TICKS(2));
@@ -120,38 +98,14 @@ static int receiveData(uint8_t* buffer, size_t size, unsigned long timeout_ms) {
 
     if (available == 0) return 0;
     size_t toRead = (available >= size) ? size : available;
-    int read = uart_read_bytes(AVR_UART_NUM, (char*)buffer, toRead, pdMS_TO_TICKS(100));
+    int read = uart_read_bytes(g_current_config.uart_num, (char*)buffer, toRead, pdMS_TO_TICKS(100));
     return read;
 }
-#else
-static int receiveData(uint8_t* buffer, size_t size, unsigned long timeout_ms) {
-    unsigned long startTime = millis();
-    size_t bytesRead = 0;
-    while (bytesRead < size && (millis() - startTime < timeout_ms)) {
-        if (avrSerial.available()) {
-            buffer[bytesRead++] = avrSerial.read();
-        } else {
-            // Avoid tight busy-loop; yield some time so the UART hardware
-            // and the target AVR have time to respond (closer to esp-idf vTaskDelay behavior).
-            delay(1);
-        }
-    }
-    return bytesRead;
-}
-#endif
 
-#ifdef ARDUINO_ARCH_ESP32
 static void flushSerial() {
     // Drain UART RX buffer
-    uart_flush_input(AVR_UART_NUM);
+    uart_flush_input(g_current_config.uart_num);
 }
-#else
-static void flushSerial() {
-    while (avrSerial.available()) {
-        avrSerial.read();
-    }
-}
-#endif
 
 static bool avr_expect_in_sync_ok(const char* step, unsigned long timeout_ms, bool verbose) {
     uint8_t resp[2] = {0, 0};
@@ -187,13 +141,13 @@ static bool avr_exec_param(uint8_t cmd, const uint8_t* params, size_t count, con
 }
 
 static void avr_reset_sequence() {
-    digitalWrite(AVR_RESET_PIN, LOW);
-    delay(1);
-    digitalWrite(AVR_RESET_PIN, HIGH);
+    digitalWrite(g_current_config.reset_pin, LOW);
     delay(100);
-    digitalWrite(AVR_RESET_PIN, LOW);
-    delay(1);
-    digitalWrite(AVR_RESET_PIN, HIGH);
+    digitalWrite(g_current_config.reset_pin, HIGH);
+    delay(100);
+    digitalWrite(g_current_config.reset_pin, LOW);
+    delay(100);
+    digitalWrite(g_current_config.reset_pin, HIGH);
     delay(100);
 }
 
@@ -263,8 +217,8 @@ static bool avr_leave_progmode() {
 static bool avr_setup_device() {
     // Initialize UART driver (if available) before any UART operations
     init_avr_uart();
-    pinMode(AVR_RESET_PIN, OUTPUT);
-    digitalWrite(AVR_RESET_PIN, HIGH);
+    pinMode(g_current_config.reset_pin, OUTPUT);
+    digitalWrite(g_current_config.reset_pin, HIGH);
 
     Serial.println("Resetting AVR and trying to enter programming mode...");
     for (int attempt = 1; attempt <= MAX_SETUP_ATTEMPTS; attempt++) {
@@ -503,7 +457,10 @@ static void log_verification_mismatch(int absolute_offset, const uint8_t* expect
 
 // --- FUNZIONE PRINCIPALE ---
 
-bool flash_avr_firmware(const char* firmware_hex) {
+bool flash_avr_firmware(const char* firmware_hex, const AVRFlashConfig& config) {
+    // Store configuration globally for use by other functions
+    g_current_config = config;
+    
     Serial.println("Parsing firmware...");
     int total_size = compute_firmware_size(firmware_hex);
     if (total_size <= 0) {

@@ -14,13 +14,13 @@
 #include "freertos/task.h"
 
 
-// --- CONFIGURAZIONE ---
-#define BLOCK_SIZE 256      // Dimensione pagina di flash dell'AVR
+// --- CONFIGURATION ---
+#define BLOCK_SIZE 256      // AVR flash page size
 
 // Global configuration for current flash operation
 static AVRFlashConfig g_current_config;
 
-// --- COSTANTI PROTOCOLLO STK500 ---
+// --- STK500 PROTOCOL CONSTANTS ---
 const uint8_t STK_OK = 0x10;
 const uint8_t STK_INSYNC = 0x14;
 const uint8_t Cmnd_STK_PROG_PAGE = 0x64;
@@ -71,7 +71,8 @@ static bool populate_firmware_image(const char* firmware_hex, uint8_t* image, in
 static uint8_t* allocate_firmware_buffer(size_t size);
 static void log_verification_mismatch(int absolute_offset, const uint8_t* expected, const uint8_t* actual, size_t length);
 
-// --- FUNZIONI DI COMUNICAZIONE UART ---
+
+// --- UART COMMUNICATION FUNCTIONS ---
 
 static void sendData(const uint8_t* data, size_t size) {
     // Use uart driver write (blocks until queued)
@@ -185,7 +186,8 @@ static bool avr_set_ext_prog_params() {
     return avr_exec_param(Cmnd_STK_SET_DEVICE_EXT, params, sizeof(params), "Set ext prog params");
 }
 
-// --- FUNZIONI PROTOCOLLO STK500 (CON DIAGNOSTICA) ---
+
+// --- STK500 PROTOCOL FUNCTIONS (WITH DIAGNOSTICS) ---
 
 static bool avr_get_sync() {
     flushSerial();
@@ -338,7 +340,8 @@ static bool avr_read_page(uint8_t* buffer, size_t size) {
     return true;
 }
 
-// --- FUNZIONI PARSING HEX ---
+
+// --- HEX PARSING FUNCTIONS ---
 
 static uint8_t hex_chars_to_byte(const char* hex) {
     uint8_t result = 0;
@@ -455,7 +458,8 @@ static void log_verification_mismatch(int absolute_offset, const uint8_t* expect
     Serial.println();
 }
 
-// --- FUNZIONE PRINCIPALE ---
+
+// --- MAIN FUNCTION ---
 
 bool flash_avr_firmware(const char* firmware_hex, const AVRFlashConfig& config) {
     // Store configuration globally for use by other functions
@@ -488,13 +492,13 @@ bool flash_avr_firmware(const char* firmware_hex, const AVRFlashConfig& config) 
     Serial.print("Parse complete. Firmware size: ");
     Serial.println(total_size);
 
-    // 2. Setup del dispositivo
+    // 2. Device setup
     if (!avr_setup_device()) {
         heap_caps_free(firmware_image);
         return false;
     }
 
-    // 3. Scrittura del firmware
+    // 3. Write firmware
     Serial.println("Writing firmware...");
     for (int i = 0; i < padded_size; i += BLOCK_SIZE) {
         int page_index = i / BLOCK_SIZE;
@@ -516,7 +520,7 @@ bool flash_avr_firmware(const char* firmware_hex, const AVRFlashConfig& config) 
     }
     Serial.println("\nWrite complete.");
 
-    // 4. Verifica del firmware
+    // 4. Verify firmware
     Serial.println("Verifying firmware...");
     uint8_t read_buffer[BLOCK_SIZE];
     for (int i = 0; i < padded_size; i += BLOCK_SIZE) {
@@ -581,7 +585,7 @@ bool flash_avr_firmware(const char* firmware_hex, const AVRFlashConfig& config) 
     }
     Serial.println("\nVerification successful.");
 
-    // 5. Uscita dalla modalità di programmazione
+    // 5. Exit programming mode
     avr_leave_progmode();
     Serial.println("Flashing complete.");
 

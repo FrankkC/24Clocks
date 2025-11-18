@@ -22,15 +22,6 @@ Step3: Functionality to adjust the position of the hands using telnet or the And
 #include "wifiManager.h"
 #include <serialLink.h>
 #include <ezTime.h>
-#include "AVRFlasher.h"
-#include "firmware_slave.h"
-
-// -- Flasher Configuration --
-#define SLAVE1_RESET_PIN 25
-#define SLAVE2_RESET_PIN 26
-
-
-// -- End of Flasher Configuration --
 
 
 #define RXD1 32
@@ -56,7 +47,6 @@ uint16_t minutesSinceMidnight = 0;
 const uint32_t oneDaySeconds = 24*60*60;
 const uint32_t oneDayMillis = oneDaySeconds*1000;
 
-void flashSlave(int slaveNum);
 void sendCommandToSlaves(const char* command);
 void getTimeString(char* buffer);
 void handleWifiCommand();
@@ -71,11 +61,6 @@ void setup() {
     Serial.begin(115200);
     delay(1);
     Serial.println("Launching Master");
-
-    pinMode(SLAVE1_RESET_PIN, OUTPUT);
-    pinMode(SLAVE2_RESET_PIN, OUTPUT);
-    digitalWrite(SLAVE1_RESET_PIN, HIGH);
-    digitalWrite(SLAVE2_RESET_PIN, HIGH);
 
     SerialSlave1.begin(115200, SERIAL_8N1, RXD1, TXD1);
     SerialSlave2.begin(115200, SERIAL_8N1, RXD2, TXD2);
@@ -121,57 +106,6 @@ void loop() {
 
     handleWifiCommand();
 
-}
-
-void flashSlave(int slaveNum) {
-    Serial.println("flashSlave");
-    Serial.printf("--- Starting flash process for slave %d ---\n", slaveNum);
-
-    HardwareSerial* slaveSerial = nullptr;
-    int resetPin = -1;
-    int rxPin = -1;
-    int txPin = -1;
-    
-    if (slaveNum == 1) {
-        // IMPORTANT: End the serial port to release it from SerialLink before flashing
-        Serial.println("Pausing communication on SerialSlave1...");
-        SerialSlave1.end();
-        slaveSerial = &SerialSlave1;
-        resetPin = SLAVE1_RESET_PIN;
-        rxPin = RXD1;
-        txPin = TXD1;
-    } else if (slaveNum == 2) {
-        // IMPORTANT: End the serial port to release it from SerialLink before flashing
-        Serial.println("Pausing communication on SerialSlave2...");
-        SerialSlave2.end();
-        slaveSerial = &SerialSlave2;
-        resetPin = SLAVE2_RESET_PIN;
-        rxPin = RXD2;
-        txPin = TXD2;
-    }
-
-    if (slaveSerial && resetPin != -1) {
-        const char* firmware_data = firmware_slave_hex;
-        size_t firmware_size = sizeof(firmware_slave_hex);
-
-        AVRFlasher flasher(*slaveSerial, resetPin, rxPin, txPin);
-        bool success = flasher.flash((const uint8_t*)firmware_data, firmware_size);
-
-        if (success) {
-            Serial.printf("--- Flash for slave %d successful ---\n", slaveNum);
-        } else {
-            Serial.printf("--- Flash for slave %d failed ---\n", slaveNum);
-        }
-    }
-
-    // Re-initialize the serial port for normal communication
-    if (slaveNum == 1) {
-        Serial.println("Resuming communication on SerialSlave1...");
-        SerialSlave1.begin(115200, SERIAL_8N1, RXD1, TXD1);
-    } else if (slaveNum == 2) {
-        Serial.println("Resuming communication on SerialSlave2...");
-        SerialSlave2.begin(115200, SERIAL_8N1, RXD2, TXD2);
-    }
 }
 
 void handleSlaveMessage1(const char* rawCommand) {
@@ -292,17 +226,6 @@ void handleWifiCommand() {
             char timeStr[5];
             getTimeString(timeStr);
             WifiManager::sendData("timeStr=" + String(timeStr));
-        } else if (command.startsWith("FLASH")) {
-            int slaveNum = command.substring(6).toInt();
-            if (slaveNum == 1 || slaveNum == 2) {
-                Serial.printf("Received WiFi flash command for slave %d\n", slaveNum);
-                flashSlave(slaveNum);
-                // flashSlave prints its own success/failure messages to Serial
-                // We can add a WifiManager::sendData here if needed, but Serial is more verbose for flashing
-                WifiManager::sendData("FLASH COMMAND SENT");
-            } else {
-                WifiManager::sendData("Invalid slave number. Use 1 or 2.");
-            }
         } else if (command.indexOf("SETLED") != -1) {
             sendCommandToSlaves(command.c_str());
             WifiManager::sendData("SETLED OK");

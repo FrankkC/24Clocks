@@ -10,6 +10,10 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# --- Configuration ---
+SERIAL_PORT="/dev/tty.usbserial-1310"
+BAUD_RATE="115200"
+
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 SLAVE_DIR="$PROJECT_ROOT/Slave"
 FLASHER_DIR="$PROJECT_ROOT/Flasher"
@@ -60,7 +64,7 @@ echo -e "${GREEN}✓ Flasher compiled successfully${NC}\n"
 echo -e "${YELLOW}[4/4] Uploading Flasher firmware to ESP32...${NC}"
 arduino-cli upload \
     --fqbn esp32:esp32:esp32:UploadSpeed=460800 \
-    --port /dev/tty.usbserial-1310 \
+    --port "$SERIAL_PORT" \
     --input-dir build \
     Flasher.ino
 
@@ -71,7 +75,7 @@ echo -e "${GREEN}=== Build and upload completed successfully! ===${NC}"
 echo -e "Slave firmware: ${SLAVE_DIR}/build/Slave.ino.hex"
 echo -e "Flasher firmware: ${FLASHER_DIR}/build/Flasher.ino.bin"
 echo -e "Header file: ${FLASHER_DIR}/firmware_slave.h"
-echo -e "Uploaded to: /dev/tty.usbserial-1310"
+echo -e "Uploaded to: $SERIAL_PORT"
 
 # Step 5: Open Serial Monitor
 echo -e "\n${YELLOW}[5/5] Opening serial monitor...${NC}"
@@ -79,4 +83,4 @@ echo -e "${YELLOW}Press CTRL+C to exit monitor${NC}\n"
 sleep 2  # Give time to read the message
 
 # Use arduino-cli monitor for better formatting
-arduino-cli monitor --port /dev/tty.usbserial-1310 --config baudrate=115200
+arduino-cli monitor --port "$SERIAL_PORT" --config baudrate="$BAUD_RATE"

@@ -86,7 +86,13 @@ void setup() {
     logger.println(WiFi.localIP());
     logger.println("Telnet to port 23 to view logs.");
     logger.println("Starting automatic flash in 5 seconds (connect Telnet now)...");
-    delay(5000);
+    
+    // Non-blocking delay to allow Telnet connection
+    unsigned long start = millis();
+    while (millis() - start < 5000) {
+        logger.handle();
+        delay(10);
+    }
 }
 
 void loop() {

@@ -46,7 +46,7 @@ void handleSlaveMessage1(const char* rawCommand);
 void handleSlaveMessage2(const char* rawCommand);
 void handleSlaveMessage(const char* rawCommand, int slaveNum);
 void getTimeString(char* buffer);
-void handleWifiCommand();
+void handleCommand();
 void setTimeInSeconds(unsigned long secondsSinceMidnight);
 unsigned long getTimeInSeconds();
 void setDisplayTime(const char* time);
@@ -148,7 +148,7 @@ void loop() {
         setDisplayTime(timeStr);
     }
 
-    handleWifiCommand();
+    handleCommand();
 
 }
 
@@ -188,16 +188,25 @@ void getTimeString(char* buffer) {
     sprintf(buffer, "%02d%02d", hours, minutes);
 }
 
-void handleWifiCommand() {
+void handleCommand() {
 
-    // Check if data is available from Telnet client
-    if (logger.available() > 0) {
-        String command = logger.readStringUntil('\n');
+    String command = "";
+
+    // Check Serial first
+    if (Serial.available() > 0) {
+        command = Serial.readStringUntil('\n');
+    } 
+    // Then check Telnet
+    else if (logger.available() > 0) {
+        command = logger.readStringUntil('\n');
+    }
+
+    if (command != "") {
         command.trim(); // Remove whitespace/newlines
 
         if (command != "") {
 
-            logger.println("handleWifiCommand: " + command);
+            logger.println("Command received: " + command);
 
             if (command.indexOf("SETTIME=") != -1) {
                 String newTime = command.substring(command.indexOf("TIME=") + 5, command.indexOf("TIME=") + 9);

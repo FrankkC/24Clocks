@@ -90,11 +90,14 @@ def build_flasher():
     ], cwd=FLASHER_DIR)
     print(f"{Colors.GREEN}✓ Flasher uploaded successfully{Colors.NC}\n")
 
-    monitor_flasher()
+    monitor_output("Flasher", b"Both Slaves Flashed Successfully", b"Some Slaves Failed to Flash")
 
-def monitor_flasher():
+def monitor_output(task_name, success_token=None, failure_token=None):
     is_ip = re.match(r"^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$", SERIAL_PORT)
     
+    reader = None
+    cleanup = None
+
     if is_ip:
         print(f"{Colors.YELLOW}OTA Upload detected (IP address).{Colors.NC}")
         print(f"{Colors.YELLOW}Waiting for device to reboot and connect to WiFi...{Colors.NC}")
@@ -118,72 +121,67 @@ def monitor_flasher():
         if not connected:
             print(f"{Colors.RED}Timeout waiting for device. Trying to connect anyway...{Colors.NC}")
 
-        print(f"{Colors.YELLOW}Connecting to Telnet logs... (Waiting for completion message){Colors.NC}")
+        print(f"{Colors.YELLOW}Connecting to Telnet logs for {task_name}... (Press CTRL+C to stop){Colors.NC}")
         
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.connect((SERIAL_PORT, 23))
             s.settimeout(None)
-            
-            buffer = b""
-            success_target = b"Both Slaves Flashed Successfully"
-            failure_target = b"Some Slaves Failed to Flash"
-            
-            while True:
-                data = s.recv(1)
-                if not data:
-                    break
-                sys.stdout.buffer.write(data)
-                sys.stdout.flush()
-                buffer += data
-                
-                if success_target in buffer:
-                    print(f"\n{Colors.GREEN}Flasher job completed successfully.{Colors.NC}")
-                    break
-                if failure_target in buffer:
-                    print(f"\n{Colors.RED}Flasher job FAILED: One or more slaves failed to flash.{Colors.NC}")
-                    sys.exit(1)
-                    
-                if len(buffer) > 4096:
-                    buffer = buffer[-2048:]
-            s.close()
+            reader = lambda: s.recv(1)
+            cleanup = lambda: s.close()
         except Exception as e:
             print(f"\nConnection failed: {e}")
-            sys.exit(1)
+            if success_token: sys.exit(1)
+            return False
 
     else:
-        print(f"\n{Colors.YELLOW}[5/5] Opening serial monitor...{Colors.NC}")
-        print(f"{Colors.YELLOW}Waiting for completion message...{Colors.NC}\n")
+        print(f"\n{Colors.YELLOW}[Monitor] Opening serial monitor for {task_name}...{Colors.NC}")
+        if not success_token:
+            print(f"{Colors.YELLOW}Press CTRL+C to exit monitor{Colors.NC}\n")
+        else:
+            print(f"{Colors.YELLOW}Waiting for completion message...{Colors.NC}\n")
         
         cmd = ["arduino-cli", "monitor", "--port", SERIAL_PORT, "--config", f"baudrate={BAUD_RATE}"]
-        success_target = b"Both Slaves Flashed Successfully"
-        failure_target = b"Some Slaves Failed to Flash"
         
         try:
             process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            buffer = b""
-            while True:
-                byte = process.stdout.read(1)
-                if not byte:
-                    break
-                sys.stdout.buffer.write(byte)
-                sys.stdout.flush()
-                buffer += byte
-                
-                if success_target in buffer:
-                    process.terminate()
-                    print(f"\n{Colors.GREEN}Flasher job completed successfully.{Colors.NC}")
-                    break
-                if failure_target in buffer:
-                    process.terminate()
-                    print(f"\n{Colors.RED}Flasher job FAILED: One or more slaves failed to flash.{Colors.NC}")
-                    sys.exit(1)
-                    
-                if len(buffer) > 4096:
-                    buffer = buffer[-2048:]
+            reader = lambda: process.stdout.read(1)
+            cleanup = lambda: process.terminate()
         except Exception as e:
             print(f"\nError: {e}")
             sys.exit(1)
+    
+    # Unified Loop
+    buffer = b""
+    try:
+        while True:
+            data = reader()
+            if not data:
+                break
+            sys.stdout.buffer.write(data)
+            sys.stdout.flush()
+            
+            if success_token or failure_token:
+                buffer += data
+                if len(buffer) > 4096:
+                    buffer = buffer[-2048:]
+                
+                if success_token and success_token in buffer:
+                    print(f"\n{Colors.GREEN}{task_name} completed successfully.{Colors.NC}")
+                    return True
+                if failure_token and failure_token in buffer:
+                    print(f"\n{Colors.RED}{task_name} FAILED.{Colors.NC}")
+                    sys.exit(1)
+    except KeyboardInterrupt:
+        pass
+    except Exception as e:
+        print(f"\nError during monitoring: {e}")
+        if success_token: sys.exit(1)
+    finally:
+        if cleanup:
+            cleanup()
+    
+    return True
 
 def build_master():
     print(f"{Colors.YELLOW}=== Building 24Clocks Master ==={Colors.NC}\n")
@@ -210,20 +208,7 @@ def build_master():
     ], cwd=MASTER_DIR)
     print(f"{Colors.GREEN}✓ Master uploaded successfully{Colors.NC}\n")
 
-    monitor_master()
-
-def monitor_master():
-    is_ip = re.match(r"^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$", SERIAL_PORT)
-    if is_ip:
-        print(f"{Colors.YELLOW}OTA Upload detected (IP address).{Colors.NC}")
-        print(f"{Colors.YELLOW}Note: Master does not support Telnet logging. Connect via USB to view Serial logs.{Colors.NC}")
-    else:
-        print(f"\n{Colors.YELLOW}[3/3] Opening serial monitor...{Colors.NC}")
-        print(f"{Colors.YELLOW}Press CTRL+C to exit monitor{Colors.NC}\n")
-        try:
-            subprocess.run(["arduino-cli", "monitor", "--port", SERIAL_PORT, "--config", f"baudrate={BAUD_RATE}"])
-        except KeyboardInterrupt:
-            pass
+    monitor_output("Master")
 
 def main():
     parser = argparse.ArgumentParser(description="Unified build script for 24Clocks")

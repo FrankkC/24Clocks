@@ -12,6 +12,7 @@ NC='\033[0m' # No Color
 
 # --- Configuration ---
 SERIAL_PORT="/dev/tty.usbserial-1310"
+OTA_PASSWORD=""
 BAUD_RATE="115200"
 
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -66,6 +67,7 @@ arduino-cli upload \
     --fqbn esp32:esp32:esp32:UploadSpeed=460800 \
     --port "$SERIAL_PORT" \
     --input-dir build \
+    --upload-field password="$OTA_PASSWORD" \
     Flasher.ino
 
 echo -e "${GREEN}✓ Flasher uploaded successfully${NC}\n"
@@ -104,12 +106,8 @@ if [[ "$SERIAL_PORT" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
 
     echo -e "${YELLOW}Connecting to Telnet logs... (Press CTRL+C to exit)${NC}"
     
-    if command -v telnet &> /dev/null; then
-        telnet "$SERIAL_PORT" 23
-    else
-        echo -e "${YELLOW}'telnet' command not found, trying 'nc'...${NC}"
-        nc "$SERIAL_PORT" 23
-    fi
+    nc "$SERIAL_PORT" 23
+
 else
     echo -e "\n${YELLOW}[5/5] Opening serial monitor...${NC}"
     echo -e "${YELLOW}Press CTRL+C to exit monitor${NC}\n"

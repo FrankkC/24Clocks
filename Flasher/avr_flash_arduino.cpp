@@ -39,7 +39,7 @@ const uint8_t Cmnd_STK_SET_DEVICE_EXT = 0x45;
 // The esp-idf implementation yields/waits in RTOS loops; a larger timeout
 // here makes the Arduino port behave more like the esp-idf flow.
 const unsigned long SERIAL_TIMEOUT_MS = 2000;
-const int MAX_SETUP_ATTEMPTS = 10;
+const int MAX_SETUP_ATTEMPTS = 3;
 
 // UART driver configuration matching esp-idf implementation
 #define AVR_UART_RX_BUF_SIZE 2048

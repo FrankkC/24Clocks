@@ -43,7 +43,7 @@ The project relies on a few external libraries and some internal ones located in
 
 ### Internal Libraries (included in this repository)
 *   **`serialLink`**: (`lib/serialLink/`) A custom library for handling serial communication between the Master and Slaves.
-*   **`SwitecX12`**: (`Slave/SwitecX12.*`) A library for controlling the X12 stepper motors. Note: This is included directly in the Slave sketch folder. The library is based on the original work by Guy Carpenter (Clearwater Software, 2017) and has been modified for the specific needs of this project.
+*   **`SwitecX12`**: (`Slave/SwitecX12.*`) A library for controlling the X12 stepper motors. Note: This is included directly in the Slave sketch folder. The library is based on the original work by [[Guy Carpenter (Clearwater Software, 2017)](https://guy.carpenter.id.au/gaugette/2017/04/29/switecx25-quad-driver-tests/)] and has been modified for the specific needs of this project.
 
 ### Included Components (not technically libraries)
 *   **`wifiManager`**: (`Master/wifiManager.*`) A component for managing WiFi connection and the Telnet command server on the Master.

@@ -89,7 +89,12 @@ void setup() {
             Serial.println("\nEnd");
         });
         ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-            Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+            static unsigned int last_pct = 101;
+            unsigned int pct = progress / (total / 100);
+            if (pct != last_pct) {
+                Serial.printf("Progress: %u%%\n", pct);
+                last_pct = pct;
+            }
         });
         ArduinoOTA.onError([](ota_error_t error) {
             Serial.printf("Error[%u]: ", error);

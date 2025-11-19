@@ -78,8 +78,41 @@ echo -e "Header file: ${FLASHER_DIR}/firmware_slave.h"
 echo -e "Uploaded to: $SERIAL_PORT"
 
 # Step 5: Open Serial Monitor
-echo -e "\n${YELLOW}[5/5] Opening serial monitor...${NC}"
-echo -e "${YELLOW}Press CTRL+C to exit monitor${NC}\n"
+# Check if SERIAL_PORT looks like an IP address
+if [[ "$SERIAL_PORT" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo -e "${YELLOW}OTA Upload detected (IP address).${NC}"
+    echo -e "${YELLOW}Waiting for device to reboot and connect to WiFi...${NC}"
+    
+    # Poll for connection (max 30 seconds)
+    MAX_RETRIES=30
+    COUNT=0
+    while [ $COUNT -lt $MAX_RETRIES ]; do
+        # Check if port 23 is open (timeout 1s)
+        if nc -z -w 1 "$SERIAL_PORT" 23 &> /dev/null; then
+            echo -e "\n${GREEN}Device is online! Connecting...${NC}"
+            break
+        fi
+        echo -n "."
+        sleep 1
+        COUNT=$((COUNT+1))
+    done
+    echo "" # Newline after dots
 
-# Use arduino-cli monitor for better formatting
-arduino-cli monitor --port "$SERIAL_PORT" --config baudrate="$BAUD_RATE"
+    if [ $COUNT -eq $MAX_RETRIES ]; then
+        echo -e "${RED}Timeout waiting for device. Trying to connect anyway...${NC}"
+    fi
+
+    echo -e "${YELLOW}Connecting to Telnet logs... (Press CTRL+C to exit)${NC}"
+    
+    if command -v telnet &> /dev/null; then
+        telnet "$SERIAL_PORT" 23
+    else
+        echo -e "${YELLOW}'telnet' command not found, trying 'nc'...${NC}"
+        nc "$SERIAL_PORT" 23
+    fi
+else
+    echo -e "\n${YELLOW}[5/5] Opening serial monitor...${NC}"
+    echo -e "${YELLOW}Press CTRL+C to exit monitor${NC}\n"
+    # Use arduino-cli monitor for better formatting
+    arduino-cli monitor --port "$SERIAL_PORT" --config baudrate="$BAUD_RATE"
+fi

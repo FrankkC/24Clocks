@@ -13,6 +13,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+// Global debugger stream
+Print* avr_debugger = &Serial;
 
 // --- CONFIGURATION ---
 #define BLOCK_SIZE 256      // AVR flash page size
@@ -114,15 +116,15 @@ static bool avr_expect_in_sync_ok(const char* step, unsigned long timeout_ms, bo
 
     if (received == 2 && resp[0] == STK_INSYNC && resp[1] == STK_OK) {
         if (verbose) {
-            Serial.printf("%s: Received %d bytes -> [0x%02X, 0x%02X]\n", step, received, resp[0], resp[1]);
+            avr_debugger->printf("%s: Received %d bytes -> [0x%02X, 0x%02X]\n", step, received, resp[0], resp[1]);
         }
         return true;
     }
 
     if (received > 0) {
-        Serial.printf("%s: Received %d bytes -> [0x%02X, 0x%02X]\n", step, received, resp[0], resp[1]);
+        avr_debugger->printf("%s: Received %d bytes -> [0x%02X, 0x%02X]\n", step, received, resp[0], resp[1]);
     } else {
-        Serial.printf("%s: Received 0 bytes (timeout).\n", step);
+        avr_debugger->printf("%s: Received 0 bytes (timeout).\n", step);
     }
 
     return false;
@@ -176,13 +178,13 @@ static bool avr_set_prog_params() {
         0x00  /* flashsize1 */
     };
 
-    Serial.println("Setting programming parameters...");
+    avr_debugger->println("Setting programming parameters...");
     return avr_exec_param(Cmnd_STK_SET_DEVICE, params, sizeof(params), "Set prog params");
 }
 
 static bool avr_set_ext_prog_params() {
     const uint8_t params[] = {0x05, 0x04, 0xd7, 0xc2, 0x00};
-    Serial.println("Setting extended programming parameters...");
+    avr_debugger->println("Setting extended programming parameters...");
     return avr_exec_param(Cmnd_STK_SET_DEVICE_EXT, params, sizeof(params), "Set ext prog params");
 }
 
@@ -222,36 +224,36 @@ static bool avr_setup_device() {
     pinMode(g_current_config.reset_pin, OUTPUT);
     digitalWrite(g_current_config.reset_pin, HIGH);
 
-    Serial.println("Resetting AVR and trying to enter programming mode...");
+    avr_debugger->println("Resetting AVR and trying to enter programming mode...");
     for (int attempt = 1; attempt <= MAX_SETUP_ATTEMPTS; attempt++) {
-        Serial.printf("Setup attempt %d of %d\n", attempt, MAX_SETUP_ATTEMPTS);
+        avr_debugger->printf("Setup attempt %d of %d\n", attempt, MAX_SETUP_ATTEMPTS);
         flushSerial();
         avr_reset_sequence();
 
         if (!avr_get_sync()) {
-            Serial.println("Sync failed, retrying setup...");
+            avr_debugger->println("Sync failed, retrying setup...");
             continue;
         }
 
         if (!avr_set_prog_params()) {
-            Serial.println("Failed to set programming parameters, retrying setup...");
+            avr_debugger->println("Failed to set programming parameters, retrying setup...");
             continue;
         }
 
         if (!avr_set_ext_prog_params()) {
-            Serial.println("Failed to set extended parameters, retrying setup...");
+            avr_debugger->println("Failed to set extended parameters, retrying setup...");
             continue;
         }
 
         if (!avr_enter_progmode()) {
-            Serial.println("Failed to enter programming mode, retrying setup...");
+            avr_debugger->println("Failed to enter programming mode, retrying setup...");
             continue;
         }
 
-        Serial.println("Sync and programming mode successful.");
+        avr_debugger->println("Sync and programming mode successful.");
         return true;
     }
-    Serial.println("Failed to setup device.");
+    avr_debugger->println("Failed to setup device.");
     return false;
 }
 
@@ -291,17 +293,17 @@ static bool avr_flash_page(uint8_t* data, size_t size) {
         const size_t DUMP_LEN = 64;
         size_t hdr_len = sizeof(cmd_header);
         size_t total_len = hdr_len + ((size < DUMP_LEN) ? size : DUMP_LEN);
-        Serial.print("Sent packet (header + first "); Serial.print((total_len - hdr_len)); Serial.println(" bytes):");
+        avr_debugger->print("Sent packet (header + first "); avr_debugger->print((total_len - hdr_len)); avr_debugger->println(" bytes):");
         // print header
         for (size_t h = 0; h < hdr_len; ++h) {
-            Serial.printf("%02X ", cmd_header[h]);
+            avr_debugger->printf("%02X ", cmd_header[h]);
         }
         // print payload sample
         size_t payload_print = (size < DUMP_LEN) ? size : DUMP_LEN;
         for (size_t p = 0; p < payload_print; ++p) {
-            Serial.printf("%02X ", data[p]);
+            avr_debugger->printf("%02X ", data[p]);
         }
-        Serial.println();
+        avr_debugger->println();
     }*/
 
     uint8_t eop[] = {Sync_CRC_EOP};
@@ -325,16 +327,16 @@ static bool avr_read_page(uint8_t* buffer, size_t size) {
 
     uint8_t resp_header[1];
     if (receiveData(resp_header, 1, 200) != 1 || resp_header[0] != STK_INSYNC) {
-        Serial.printf("Read page: Failed to receive INSYNC. Got 0x%02X\n", resp_header[0]);
+        avr_debugger->printf("Read page: Failed to receive INSYNC. Got 0x%02X\n", resp_header[0]);
         return false;
     }
     if (receiveData(buffer, size, 500) != (int)size) {
-        Serial.println("Read page: Failed to receive full data payload.");
+        avr_debugger->println("Read page: Failed to receive full data payload.");
         return false;
     }
     uint8_t resp_footer[1];
     if (receiveData(resp_footer, 1, 200) != 1 || resp_footer[0] != STK_OK) {
-        Serial.printf("Read page: Failed to receive OK. Got 0x%02X\n", resp_footer[0]);
+        avr_debugger->printf("Read page: Failed to receive OK. Got 0x%02X\n", resp_footer[0]);
         return false;
     }
     return true;
@@ -423,7 +425,7 @@ static bool populate_firmware_image(const char* firmware_hex, uint8_t* image, in
         int type = parse_hex_line(temp_line, data_buf, &addr, &data_len);
         if (type == 0) {
             if (addr + data_len > image_size) {
-                Serial.println("HEX data exceeds allocated buffer size.");
+                avr_debugger->println("HEX data exceeds allocated buffer size.");
                 return false;
             }
             memcpy(&image[addr], data_buf, data_len);
@@ -445,17 +447,17 @@ static uint8_t* allocate_firmware_buffer(size_t size) {
 }
 
 static void log_verification_mismatch(int absolute_offset, const uint8_t* expected, const uint8_t* actual, size_t length) {
-    Serial.printf("Verification mismatch at absolute byte %d\n", absolute_offset);
-    Serial.print("Expected: ");
+    avr_debugger->printf("Verification mismatch at absolute byte %d\n", absolute_offset);
+    avr_debugger->print("Expected: ");
     for (size_t i = 0; i < length; ++i) {
-        Serial.printf("%02X ", expected[i]);
+        avr_debugger->printf("%02X ", expected[i]);
     }
-    Serial.println();
-    Serial.print("Actual  : ");
+    avr_debugger->println();
+    avr_debugger->print("Actual  : ");
     for (size_t i = 0; i < length; ++i) {
-        Serial.printf("%02X ", actual[i]);
+        avr_debugger->printf("%02X ", actual[i]);
     }
-    Serial.println();
+    avr_debugger->println();
 }
 
 
@@ -465,21 +467,21 @@ bool flash_avr_firmware(const char* firmware_hex, const AVRFlashConfig& config) 
     // Store configuration globally for use by other functions
     g_current_config = config;
     
-    Serial.println("Parsing firmware...");
+    avr_debugger->println("Parsing firmware...");
     int total_size = compute_firmware_size(firmware_hex);
     if (total_size <= 0) {
-        Serial.println("Firmware HEX appears empty or invalid.");
+        avr_debugger->println("Firmware HEX appears empty or invalid.");
         return false;
     }
     if (total_size > MAX_FIRMWARE_SIZE) {
-        Serial.printf("Firmware size %d exceeds maximum supported %d bytes.\n", total_size, MAX_FIRMWARE_SIZE);
+        avr_debugger->printf("Firmware size %d exceeds maximum supported %d bytes.\n", total_size, MAX_FIRMWARE_SIZE);
         return false;
     }
 
     const int padded_size = ((total_size + BLOCK_SIZE - 1) / BLOCK_SIZE) * BLOCK_SIZE;
     uint8_t* firmware_image = allocate_firmware_buffer(padded_size);
     if (!firmware_image) {
-        Serial.println("Failed to allocate firmware buffer (enable PSRAM or reduce firmware size).");
+        avr_debugger->println("Failed to allocate firmware buffer (enable PSRAM or reduce firmware size).");
         return false;
     }
     memset(firmware_image, 0xFF, padded_size);
@@ -489,8 +491,8 @@ bool flash_avr_firmware(const char* firmware_hex, const AVRFlashConfig& config) 
         return false;
     }
 
-    Serial.print("Parse complete. Firmware size: ");
-    Serial.println(total_size);
+    avr_debugger->print("Parse complete. Firmware size: ");
+    avr_debugger->println(total_size);
 
     // 2. Device setup
     if (!avr_setup_device()) {
@@ -499,39 +501,39 @@ bool flash_avr_firmware(const char* firmware_hex, const AVRFlashConfig& config) 
     }
 
     // 3. Write firmware
-    Serial.println("Writing firmware...");
+    avr_debugger->println("Writing firmware...");
     for (int i = 0; i < padded_size; i += BLOCK_SIZE) {
         int page_index = i / BLOCK_SIZE;
         uint16_t word_addr = i / 2;
-        Serial.printf("Writing page %d (byte offset 0x%04X, word addr 0x%04X)\n", page_index, i, word_addr);
+        avr_debugger->printf("Writing page %d (byte offset 0x%04X, word addr 0x%04X)\n", page_index, i, word_addr);
         if (!avr_load_address(i / 2)) {
-            Serial.println("Failed to load address.");
+            avr_debugger->println("Failed to load address.");
             avr_leave_progmode();
             heap_caps_free(firmware_image);
             return false;
         }
         if (!avr_flash_page(&firmware_image[i], BLOCK_SIZE)) {
-            Serial.println("Failed to flash page.");
+            avr_debugger->println("Failed to flash page.");
             avr_leave_progmode();
             heap_caps_free(firmware_image);
             return false;
         }
-        Serial.print(".");
+        avr_debugger->print(".");
     }
-    Serial.println("\nWrite complete.");
+    avr_debugger->println("\nWrite complete.");
 
     // 4. Verify firmware
-    Serial.println("Verifying firmware...");
+    avr_debugger->println("Verifying firmware...");
     uint8_t read_buffer[BLOCK_SIZE];
     for (int i = 0; i < padded_size; i += BLOCK_SIZE) {
         if (!avr_load_address(i / 2)) {
-            Serial.println("Failed to load address for verification.");
+            avr_debugger->println("Failed to load address for verification.");
             avr_leave_progmode();
             heap_caps_free(firmware_image);
             return false;
         }
         if (!avr_read_page(read_buffer, BLOCK_SIZE)) {
-            Serial.println("Failed to read page for verification.");
+            avr_debugger->println("Failed to read page for verification.");
             avr_leave_progmode();
             heap_caps_free(firmware_image);
             return false;
@@ -554,40 +556,40 @@ bool flash_avr_firmware(const char* firmware_hex, const AVRFlashConfig& config) 
             // the internal write slightly later.
             /*{
                 size_t dump_len = (chunk < 64) ? chunk : 64;
-                Serial.print("Dump expected (first "); Serial.print(dump_len); Serial.println(" bytes of page):");
-                for (size_t k = 0; k < dump_len; ++k) Serial.printf("%02X ", firmware_image[i + k]);
-                Serial.println();
+                avr_debugger->print("Dump expected (first "); avr_debugger->print(dump_len); avr_debugger->println(" bytes of page):");
+                for (size_t k = 0; k < dump_len; ++k) avr_debugger->printf("%02X ", firmware_image[i + k]);
+                avr_debugger->println();
 
-                Serial.print("Dump actual  (first "); Serial.print(dump_len); Serial.println(" bytes read):");
-                for (size_t k = 0; k < dump_len; ++k) Serial.printf("%02X ", read_buffer[k]);
-                Serial.println();
+                avr_debugger->print("Dump actual  (first "); avr_debugger->print(dump_len); avr_debugger->println(" bytes read):");
+                for (size_t k = 0; k < dump_len; ++k) avr_debugger->printf("%02X ", read_buffer[k]);
+                avr_debugger->println();
 
-                Serial.println("Waiting 500 ms and retrying read of same page...");
+                avr_debugger->println("Waiting 500 ms and retrying read of same page...");
                 delay(500);
 
                 uint8_t retry_buffer[BLOCK_SIZE];
                 if (!avr_load_address(i / 2)) {
-                    Serial.println("Retry: Failed to load address.");
+                    avr_debugger->println("Retry: Failed to load address.");
                 } else if (!avr_read_page(retry_buffer, BLOCK_SIZE)) {
-                    Serial.println("Retry: Failed to read page.");
+                    avr_debugger->println("Retry: Failed to read page.");
                 } else {
-                    Serial.print("Retry read (first "); Serial.print(dump_len); Serial.println(" bytes):");
-                    for (size_t k = 0; k < dump_len; ++k) Serial.printf("%02X ", retry_buffer[k]);
-                    Serial.println();
+                    avr_debugger->print("Retry read (first "); avr_debugger->print(dump_len); avr_debugger->println(" bytes):");
+                    for (size_t k = 0; k < dump_len; ++k) avr_debugger->printf("%02X ", retry_buffer[k]);
+                    avr_debugger->println();
                 }
             }*/
-            Serial.println("Verification failed at page.");
+            avr_debugger->println("Verification failed at page.");
             avr_leave_progmode();
             heap_caps_free(firmware_image);
             return false;
         }
-        Serial.print(".");
+        avr_debugger->print(".");
     }
-    Serial.println("\nVerification successful.");
+    avr_debugger->println("\nVerification successful.");
 
     // 5. Exit programming mode
     avr_leave_progmode();
-    Serial.println("Flashing complete.");
+    avr_debugger->println("Flashing complete.");
 
     heap_caps_free(firmware_image);
     return true;

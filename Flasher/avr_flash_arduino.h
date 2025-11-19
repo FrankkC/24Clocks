@@ -13,6 +13,9 @@
 
 #define MAX_FIRMWARE_SIZE 262144  // ATmega2560 flash size
 
+// Global debugger stream pointer (defaults to &Serial)
+extern Print* avr_debugger;
+
 /**
  * Configuration structure for AVR flashing pins
  */

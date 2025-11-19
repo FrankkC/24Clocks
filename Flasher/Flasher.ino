@@ -6,7 +6,7 @@
 
 #include "avr_flash_arduino.h"
 #include "firmware_slave.h"
-#include "DualLogger.h"
+#include <DualLogger.h>
 #include <WiFi.h>
 #include <ArduinoOTA.h>
 

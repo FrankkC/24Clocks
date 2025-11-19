@@ -1,17 +1,10 @@
-// Serial0 and Serial3 available
-// Serial1 occupied by board connection
-// Serial2 RX occupied by reset pin
-
 /*
-SLAVE:
-Serial --> Serial Monitor
-Serial3 --> Master
-*/
-
-/*
-TODO:
-Step3: Functionality to adjust the position of the hands using telnet or the Android app
-*/
+ * 24Clocks Slave Firmware
+ * 
+ * Controls 12 Switec X12 motors (24 hands) via custom driver.
+ * Receives commands from Master via Serial.
+ * 
+ */
 
 #include <Arduino.h>
 #include "SwitecX12.h"

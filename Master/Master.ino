@@ -1,29 +1,19 @@
 /*
-MASTER:
-Serial1 --> Slave 1
-Serial2 --> Slave 2
-SerialZ --> Serial Monitor
-
-SLAVE 1:
-Serial --> Serial Monitor
-Serial3 --> Master
-
-SLAVE 2:
-Serial --> Serial Monitor
-Serial3 --> Master
-*/
-
-/*
-TODO:
-Step3: Functionality to adjust the position of the hands using telnet or the Android app
-*/
+ * 24Clocks Master Firmware
+ * 
+ * Controls two ATmega2560 slaves via Serial to drive 24 analog clocks.
+ * 
+ */
 
 #include <Arduino.h>
-#include "wifiManager.h"
 #include <serialLink.h>
 #include <ezTime.h>
 #include <ArduinoOTA.h>
+#include <DualLogger.h>
 
+// WiFi Credentials
+const char* ssid = "WIFI_SSID";
+const char* password = "WIFI_PASSWORD";
 
 #define RXD1 32
 #define TXD1 33
@@ -35,6 +25,8 @@ HardwareSerial SerialSlave2(2);
 
 SerialLink slave1(SerialSlave1);
 SerialLink slave2(SerialSlave2);
+
+DualLogger logger;
 
 //int timer = 0;
 bool countMode = false;
@@ -49,6 +41,10 @@ const uint32_t oneDaySeconds = 24*60*60;
 const uint32_t oneDayMillis = oneDaySeconds*1000;
 
 void sendCommandToSlaves(const char* command);
+void sendCommandToSpecificSlave(int slaveNum, const char* command);
+void handleSlaveMessage1(const char* rawCommand);
+void handleSlaveMessage2(const char* rawCommand);
+void handleSlaveMessage(const char* rawCommand, int slaveNum);
 void getTimeString(char* buffer);
 void handleWifiCommand();
 void setTimeInSeconds(unsigned long secondsSinceMidnight);
@@ -63,6 +59,22 @@ void setup() {
     delay(1);
     Serial.println("Launching Master");
 
+    // WiFi Setup
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(ssid, password);
+    Serial.print("Connecting to WiFi");
+    while (WiFi.waitForConnectResult() != WL_CONNECTED) {
+        Serial.print(".");
+        delay(500);
+    }
+    Serial.println("\nConnected to WiFi");
+    Serial.print("IP Address: ");
+    Serial.println(WiFi.localIP());
+
+    // Start Logger (Telnet Server)
+    logger.begin();
+    logger.println("Master Ready. Telnet logging active.");
+
     SerialSlave1.begin(115200, SERIAL_8N1, RXD1, TXD1);
     SerialSlave2.begin(115200, SERIAL_8N1, RXD2, TXD2);
 
@@ -74,46 +86,45 @@ void setup() {
     sendCommandToSpecificSlave(2, "SETSLAVEOFFSET=1");
     delay(100); // Give slaves time to process the command
 
-    WifiManager::init([]() {
-        ArduinoOTA.setHostname("ESP32-Master");
+    ArduinoOTA.setHostname("ESP32-Master");
 
-        ArduinoOTA.onStart([]() {
-            String type;
-            if (ArduinoOTA.getCommand() == U_FLASH)
-                type = "sketch";
-            else // U_SPIFFS
-                type = "filesystem";
-            Serial.println("Start updating " + type);
-        });
-        ArduinoOTA.onEnd([]() {
-            Serial.println("\nEnd");
-        });
-        ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-            static unsigned int last_pct = 101;
-            unsigned int pct = progress / (total / 100);
-            if (pct != last_pct) {
-                Serial.printf("Progress: %u%%\n", pct);
-                last_pct = pct;
-            }
-        });
-        ArduinoOTA.onError([](ota_error_t error) {
-            Serial.printf("Error[%u]: ", error);
-            if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
-            else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
-            else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
-            else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
-            else if (error == OTA_END_ERROR) Serial.println("End Failed");
-        });
-
-        ArduinoOTA.begin();
-        
-        setNTP();
+    ArduinoOTA.onStart([]() {
+        String type;
+        if (ArduinoOTA.getCommand() == U_FLASH)
+            type = "sketch";
+        else // U_SPIFFS
+            type = "filesystem";
+        logger.println("Start updating " + type);
     });
+    ArduinoOTA.onEnd([]() {
+        logger.println("\nEnd");
+    });
+    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+        static unsigned int last_pct = 101;
+        unsigned int pct = progress / (total / 100);
+        if (pct != last_pct) {
+            logger.printf("Progress: %u%%\n", pct);
+            last_pct = pct;
+        }
+    });
+    ArduinoOTA.onError([](ota_error_t error) {
+        logger.printf("Error[%u]: ", error);
+        if (error == OTA_AUTH_ERROR) logger.println("Auth Failed");
+        else if (error == OTA_BEGIN_ERROR) logger.println("Begin Failed");
+        else if (error == OTA_CONNECT_ERROR) logger.println("Connect Failed");
+        else if (error == OTA_RECEIVE_ERROR) logger.println("Receive Failed");
+        else if (error == OTA_END_ERROR) logger.println("End Failed");
+    });
+
+    ArduinoOTA.begin();
+    
+    setNTP();
 
 }
 
 void loop() {
     ArduinoOTA.handle();
+    logger.handle(); // Handle Telnet clients
     slave1.loop();
     slave2.loop();
 
@@ -124,7 +135,7 @@ void loop() {
     /*if (countMode && timer != (millis()/1000)%10) {
         timer = (millis()/1000)%10;
         char time[5];
-        sprintf (time, "%d%d%d%d\0", timer, timer, timer, timer);
+        sprintf (time, "%d%d%d%d\0", timer, timer, timer, timer, timer);
         setDisplayTime(time);
     }*/
 
@@ -142,17 +153,17 @@ void loop() {
 }
 
 void handleSlaveMessage1(const char* rawCommand) {
-    Serial.println("handleSlaveMessage1");
+    logger.println("handleSlaveMessage1");
     handleSlaveMessage(rawCommand, 1);
 }
 
 void handleSlaveMessage2(const char* rawCommand) {
-    Serial.println("handleSlaveMessage2");
+    logger.println("handleSlaveMessage2");
     handleSlaveMessage(rawCommand, 2);
 }
 
 void handleSlaveMessage(const char* rawCommand, int slaveNum) {
-    Serial.printf("[SLAVE %d] %s\n", slaveNum, rawCommand);
+    logger.printf("[SLAVE %d] %s\n", slaveNum, rawCommand);
 }
 
 void sendCommandToSlaves(const char* command) {
@@ -173,99 +184,103 @@ void getTimeString(char* buffer) {
     unsigned int minutes = minutesSinceMidnight%60;
     unsigned int hours = (minutesSinceMidnight-minutes)/60;
 
-    Serial.printf("newTime %d --> %02d%02d\n", minutesSinceMidnight, hours, minutes);
+    logger.printf("newTime %d --> %02d%02d\n", minutesSinceMidnight, hours, minutes);
     sprintf(buffer, "%02d%02d", hours, minutes);
 }
 
 void handleWifiCommand() {
 
-    String command = WifiManager::readCommand();
+    // Check if data is available from Telnet client
+    if (logger.available() > 0) {
+        String command = logger.readStringUntil('\n');
+        command.trim(); // Remove whitespace/newlines
 
-    if (command != "") {
+        if (command != "") {
 
-        Serial.println("handleWifiCommand: " + command);
+            logger.println("handleWifiCommand: " + command);
 
-        if (command.indexOf("SETTIME=") != -1) {
-            String newTime = command.substring(command.indexOf("TIME=") + 5, command.indexOf("TIME=") + 9);
+            if (command.indexOf("SETTIME=") != -1) {
+                String newTime = command.substring(command.indexOf("TIME=") + 5, command.indexOf("TIME=") + 9);
 
-            // Convert the time into seconds since midnight
-            unsigned int tempIntTime = atoi(newTime.c_str());
-            unsigned int minutes = tempIntTime % 100;
-            unsigned int hours = (tempIntTime - minutes) / 100;
+                // Convert the time into seconds since midnight
+                unsigned int tempIntTime = atoi(newTime.c_str());
+                unsigned int minutes = tempIntTime % 100;
+                unsigned int hours = (tempIntTime - minutes) / 100;
 
-            // Invert the following lines if we are using the seconds count instead of the minutes
-            unsigned long newTimeInSeconds = minutes * 60 + hours * 60 * 60;
-            //unsigned long newTimeInSeconds = minutes + hours * 60;
+                // Invert the following lines if we are using the seconds count instead of the minutes
+                unsigned long newTimeInSeconds = minutes * 60 + hours * 60 * 60;
+                //unsigned long newTimeInSeconds = minutes + hours * 60;
 
 
-            // Set timeoffset to this value
-            setTimeInSeconds(newTimeInSeconds);
+                // Set timeoffset to this value
+                setTimeInSeconds(newTimeInSeconds);
 
-            // Set timeMode = true to start updating the hands position
-            timeMode = true;
-            countMode = false;
+                // Set timeMode = true to start updating the hands position
+                timeMode = true;
+                countMode = false;
 
-            WifiManager::sendData("SET TIME OK");
-        } else if (command.indexOf("SETNTP") != -1) {
-            setNTP();
-            WifiManager::sendData("SETNTP OK");
-        } else if (command.indexOf("SETHOME") != -1) {
-            timeMode = false;
-            countMode = false;
-            setHome();
-            WifiManager::sendData("SET HOME OK");
-        } else if (command.indexOf("SETZERO") != -1) {
-            timeMode = false;
-            countMode = false;
-            setDisplayTime("0000");
-            WifiManager::sendData("SET ZERO OK");
-        } else if (command.indexOf("SETCOUNT=1") != -1) {
-            timeMode = false;
-            countMode = true;
-            WifiManager::sendData("SET COUNT MODE ON OK");
-        } else if (command.indexOf("SETCOUNT=0") != -1) {
-            countMode = false;
-            WifiManager::sendData("SET COUNT MODE OFF OK");
-        } else if (command.indexOf("SETMIN=0") != -1) {
-            sendCommandToSlaves("SETMIN=0");
-            WifiManager::sendData("SETMIN=0 OK");
-        } else if (command.indexOf("SETMIN=1") != -1) {
-            sendCommandToSlaves("SETMIN=1");
-            WifiManager::sendData("SETMIN=1 OK");
-        } else if (command.indexOf("SETHOU=0") != -1) {
-            sendCommandToSlaves("SETHOU=0");
-            WifiManager::sendData("SETHOU=0 OK");
-        } else if (command.indexOf("SETHOU=1") != -1) {
-            sendCommandToSlaves("SETHOU=1");
-            WifiManager::sendData("SETHOU=1 OK");
-        } else if (command.indexOf("SETSPIN=") != -1) {
-            // TODO: Deactivate timeMode and countMode
-            sendCommandToSlaves(command.c_str());
-            WifiManager::sendData("SET SPIN OK");
-        } else if (command.indexOf("ECHO") != -1) {
-            WifiManager::sendData("ECHO OK");
-        } else if (command.indexOf("UPTIME") != -1) {
-            // Print device uptime in seconds
-            unsigned long uptime = millis() / 1000;
-            WifiManager::sendData("UPTIME=" + String(uptime) + " seconds");
-        } else if (command.indexOf("DEBUG") != -1) {
-            unsigned long uptime = millis() / 1000;
-            WifiManager::sendData("UPTIME=" + String(uptime) + " seconds");
-            WifiManager::sendData("countMode=" + String(countMode));
-            WifiManager::sendData("timeMode=" + String(timeMode));
-            WifiManager::sendData("timeOffset=" + String(timeOffset) + " seconds");
-            WifiManager::sendData("secondsSinceMidnight=" + String(secondsSinceMidnight) + " seconds");
-            WifiManager::sendData("minutesSinceMidnight=" + String(minutesSinceMidnight) + " minutes");
-            char timeStr[5];
-            getTimeString(timeStr);
-            WifiManager::sendData("timeStr=" + String(timeStr));
-        } else if (command.indexOf("SETLED") != -1) {
-            sendCommandToSlaves(command.c_str());
-            WifiManager::sendData("SETLED OK");
-        } else {
-            WifiManager::sendData("UNKNOWN COMMAND");
+                logger.println("SET TIME OK");
+            } else if (command.indexOf("SETNTP") != -1) {
+                setNTP();
+                logger.println("SETNTP OK");
+            } else if (command.indexOf("SETHOME") != -1) {
+                timeMode = false;
+                countMode = false;
+                setHome();
+                logger.println("SET HOME OK");
+            } else if (command.indexOf("SETZERO") != -1) {
+                timeMode = false;
+                countMode = false;
+                setDisplayTime("0000");
+                logger.println("SET ZERO OK");
+            } else if (command.indexOf("SETCOUNT=1") != -1) {
+                timeMode = false;
+                countMode = true;
+                logger.println("SET COUNT MODE ON OK");
+            } else if (command.indexOf("SETCOUNT=0") != -1) {
+                countMode = false;
+                logger.println("SET COUNT MODE OFF OK");
+            } else if (command.indexOf("SETMIN=0") != -1) {
+                sendCommandToSlaves("SETMIN=0");
+                logger.println("SETMIN=0 OK");
+            } else if (command.indexOf("SETMIN=1") != -1) {
+                sendCommandToSlaves("SETMIN=1");
+                logger.println("SETMIN=1 OK");
+            } else if (command.indexOf("SETHOU=0") != -1) {
+                sendCommandToSlaves("SETHOU=0");
+                logger.println("SETHOU=0 OK");
+            } else if (command.indexOf("SETHOU=1") != -1) {
+                sendCommandToSlaves("SETHOU=1");
+                logger.println("SETHOU=1 OK");
+            } else if (command.indexOf("SETSPIN=") != -1) {
+                // TODO: Deactivate timeMode and countMode
+                sendCommandToSlaves(command.c_str());
+                logger.println("SET SPIN OK");
+            } else if (command.indexOf("ECHO") != -1) {
+                logger.println("ECHO OK");
+            } else if (command.indexOf("UPTIME") != -1) {
+                // Print device uptime in seconds
+                unsigned long uptime = millis() / 1000;
+                logger.println("UPTIME=" + String(uptime) + " seconds");
+            } else if (command.indexOf("DEBUG") != -1) {
+                unsigned long uptime = millis() / 1000;
+                logger.println("UPTIME=" + String(uptime) + " seconds");
+                logger.println("countMode=" + String(countMode));
+                logger.println("timeMode=" + String(timeMode));
+                logger.println("timeOffset=" + String(timeOffset) + " seconds");
+                logger.println("secondsSinceMidnight=" + String(secondsSinceMidnight) + " seconds");
+                logger.println("minutesSinceMidnight=" + String(minutesSinceMidnight) + " minutes");
+                char timeStr[5];
+                getTimeString(timeStr);
+                logger.println("timeStr=" + String(timeStr));
+            } else if (command.indexOf("SETLED") != -1) {
+                sendCommandToSlaves(command.c_str());
+                logger.println("SETLED OK");
+            } else {
+                logger.println("UNKNOWN COMMAND");
+            }
+
         }
-
     }
 
 }
@@ -288,7 +303,7 @@ unsigned long getTimeInSeconds() {
 
 void setDisplayTime(const char* time) {
 
-    Serial.printf("setDisplayTime: %s\n", time);
+    logger.printf("setDisplayTime: %s\n", time);
 
     char buffer [13];
     sprintf(buffer, "SETTIME=%s\0", time);
@@ -297,7 +312,7 @@ void setDisplayTime(const char* time) {
 }
 
 void setHome() {
-    Serial.println("Going home...");
+    logger.println("Going home...");
     sendCommandToSlaves("SETHOME");
 }
 
@@ -308,12 +323,12 @@ void setNTP() {
         timezone.setLocation("Europe/Rome");
 
         setTimeInSeconds(timezone.hour()*60*60 + timezone.minute()*60 + timezone.second());
-        Serial.println("NTP time: " + timezone.dateTime());
+        logger.println("NTP time: " + timezone.dateTime());
 
         timeMode = true;
         countMode = false;
     } else {
-        Serial.println("NTP time not available");
+        logger.println("NTP time not available");
     }
 
 }

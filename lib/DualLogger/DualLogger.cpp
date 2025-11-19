@@ -12,11 +12,34 @@ void DualLogger::handle() {
         if (!_client || !_client.connected()) {
             if (_client) _client.stop();
             _client = _server.available();
-            println("Connected to ESP32 Flasher Telnet Log");
+            println("Connected to ESP32 Telnet Log");
+            // Flush input buffer on new connection
+            while(_client.available()) _client.read();
         } else {
             _server.available().stop(); // Reject multiple clients
         }
     }
+}
+
+int DualLogger::available() {
+    if (_client && _client.connected()) {
+        return _client.available();
+    }
+    return 0;
+}
+
+int DualLogger::read() {
+    if (_client && _client.connected()) {
+        return _client.read();
+    }
+    return -1;
+}
+
+String DualLogger::readStringUntil(char terminator) {
+    if (_client && _client.connected()) {
+        return _client.readStringUntil(terminator);
+    }
+    return "";
 }
 
 size_t DualLogger::write(uint8_t c) {

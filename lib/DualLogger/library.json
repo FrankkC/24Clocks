@@ -1,0 +1,19 @@
+{
+  "name": "DualLogger",
+  "version": "1.0.0",
+  "description": "A library for logging via telnet and serial simultaneously.",
+  "keywords": "serial, communication",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "authors": [
+    {
+      "name": "Francesco Comi",
+      "email": "",
+      "maintainer": true
+    }
+  ],
+  "frameworks": "arduino",
+  "platforms": "*"
+}

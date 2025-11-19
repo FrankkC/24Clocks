@@ -80,7 +80,6 @@ echo -e "Uploaded to: $SERIAL_PORT"
 # Step 5: Open Serial Monitor
 echo -e "\n${YELLOW}[5/5] Opening serial monitor...${NC}"
 echo -e "${YELLOW}Press CTRL+C to exit monitor${NC}\n"
-sleep 2  # Give time to read the message
 
 # Use arduino-cli monitor for better formatting
 arduino-cli monitor --port "$SERIAL_PORT" --config baudrate="$BAUD_RATE"

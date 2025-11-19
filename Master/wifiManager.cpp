@@ -1,8 +1,8 @@
 #include <Arduino.h>
 #include "WifiManager.h"
 
-const char* ssid = "MY_WIFI_SSID";
-const char* password = "***REDACTED***";
+const char* ssid = "WIFI_SSID";
+const char* password = "WIFI_PASSWORD";
 
 WiFiServer server(80);
 WiFiClient client;

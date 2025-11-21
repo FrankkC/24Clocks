@@ -15,7 +15,7 @@ The system consists of three main software components:
 ### Master (ESP32)
 
 *   **WiFi and Time Synchronization:** Connects to a WiFi network (credentials in `Master/wifiManager.cpp`) and uses the `ezTime` library to get the current time via NTP.
-*   **TCP Server (Telnet):** The `wifiManager.cpp` file starts a TCP server on port 80. This acts as a command-line interface to receive commands (e.g., `SETTIME=HHMM`, `SETHOME`) from a Telnet client or the 24Client Android app.
+*   **TCP Server (Telnet):** The `DualLogger` library starts a TCP server on port 23. This acts as a command-line interface to receive commands (e.g., `SETTIME=HHMM`, `SETHOME`) from a Telnet client or the 24Client Android app.
 *   **Command Logic:** The main loop (`Master.ino`) checks the time. When the minute changes, it formats a command string (e.g., `CMDSETTIME=1209;`) and sends it to both Slaves via the `serialLink` library.
 *   **OTA Support:** Supports Over-The-Air (OTA) updates for wireless firmware flashing.
 
@@ -34,7 +34,6 @@ The system consists of three main software components:
 *   **AVR Programming Tool:** The Flasher is a standalone utility that programs the ATmega2560 Slave boards using the STK500 protocol over serial communication.
 *   **Flashing Process:** The process starts automatically upon boot.
 *   **OTA Support:** The Flasher supports Over-The-Air (OTA) updates, allowing you to update the Flasher firmware (and thus the embedded Slave firmware) wirelessly.
-*   **STK500 Protocol Implementation:** The core logic in `avr_flash_arduino.cpp` is based on code from [[Laukik Hase's OTA_update_AVR_using_ESP32 project](https://github.com/ESP32-Musings/OTA_update_AVR_using_ESP32)], adapted for the Arduino framework.
 
 ## Libraries and Dependencies
 
@@ -44,9 +43,9 @@ The project relies on a few external libraries and some internal ones located in
 *   **`ezTime`**: Used by the Master for NTP time synchronization.
 
 ### Internal Components (included in this repository)
+*   **`DualLogger`**: (`lib/DualLogger/`) A shared library that provides a unified interface for logging to both Serial and Telnet (port 23). Used by both Master and Flasher.
 *   **`serialLink`**: (`lib/serialLink/`) A custom library for handling serial communication between the Master and Slaves.
 *   **`SwitecX12`**: (`Slave/SwitecX12.*`) A library for controlling the X12 stepper motors. Note: This is included directly in the Slave sketch folder. The library is based on the original work by [[Guy Carpenter (Clearwater Software, 2017)](https://guy.carpenter.id.au/gaugette/2017/04/29/switecx25-quad-driver-tests/)] and has been modified for the specific needs of this project.
-*   **`wifiManager`**: (`Master/wifiManager.*`) A component for managing WiFi connection and the Telnet command server on the Master.
 *   **`avr_flash_arduino`**: (`Flasher/avr_flash_arduino.*`) A library implementing the STK500 protocol to flash ATmega2560 boards. Based on [Laukik Hase's work](https://github.com/ESP32-Musings/OTA_update_AVR_using_ESP32).
 
 ## Setup and Usage
@@ -67,18 +66,47 @@ The project relies on a few external libraries and some internal ones located in
     *   On startup, the Master will connect to WiFi, synchronize the time, and start sending commands to the Slaves.
     *   You can connect to the Master's IP address via a Telnet client (port 80) to send commands manually.
 
-### Build Automation (`build_flasher.sh`)
+### Build Automation (`build.py`)
 
-The repository includes the `build_flasher.sh` script, to automate the process of preparing and uploading the `Flasher` firmware using `arduino-cli`.
+The repository includes a Python script, `build.py`, to automate the entire build and deployment process for both the Flasher and the Master firmware. It handles compilation, header generation, uploading (via Serial or OTA), and monitoring (via Serial or Telnet).
+
+**Prerequisites:**
+*   Python 3
+*   `arduino-cli` installed and configured.
+*   Required Python packages (standard library only).
+
+**Configuration:**
+Edit the `build.py` file to set your environment variables:
+*   `SERIAL_PORT`: The serial port (e.g., `/dev/tty.usbserial-1310`) or IP address (e.g., `192.168.1.100`) of the target device.
+*   `OTA_PASSWORD`: Password for OTA updates (if enabled).
+*   `BAUD_RATE`: Baud rate for serial communication (default: 115200).
 
 **Usage:**
-1.  Configure the correct parameters in `Flasher.ino` (WiFi credentials for OTA updates, TX, RX, and RESET pins).
-2.  Configure the correct parameters in `build_flasher.sh` (`SERIAL_PORT` and `BAUD_RATE`).
-3.  Run the script: `./build_flasher.sh`
+Run the script from the terminal:
+```bash
+./build.py [target]
+```
 
-**What it does:**
-1.  **Compiles the Slave Firmware:** It builds the `Slave.ino` sketch for the ATmega2560.
-2.  **Generates Firmware Header:** It runs `tools/hex_to_firmware_header.py` to convert the compiled `Slave.ino.hex` into a C header file (`firmware_slave.h`).
-3.  **Compiles the Flasher:** It builds the `Flasher.ino` sketch, embedding the new Slave firmware.
-4.  **Uploads to ESP32:** It uploads the compiled Flasher firmware to the ESP32.
-5.  **Opens Serial Monitor:** It automatically opens a serial monitor to show the flashing progress.
+**Targets:**
+*   `flasher`:
+    1.  Compiles `Slave.ino` for ATmega2560.
+    2.  Converts the hex file to `firmware_slave.h`.
+    3.  Compiles `Flasher.ino` (embedding the slave firmware).
+    4.  Uploads to the ESP32.
+    5.  Monitors the output (Serial or Telnet) until success/failure.
+*   `master`:
+    1.  Compiles `Master.ino`.
+    2.  Uploads to the ESP32.
+    3.  Monitors the output (Serial or Telnet).
+*   `full`:
+    1.  Runs the `flasher` target first.
+    2.  Waits for completion.
+    3.  Runs the `master` target.
+*   `monitor`:
+    *   Connects to the device (via Serial or Telnet) and streams the logs. Useful for debugging without re-uploading.
+
+**Monitoring:**
+The script automatically detects if `SERIAL_PORT` is an IP address or a serial device:
+*   **Serial:** Opens `arduino-cli monitor`.
+*   **IP (OTA):** Connects via Telnet (port 23) to stream logs directly from the device. It handles connection retries and timeouts automatically.
+

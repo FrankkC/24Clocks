@@ -212,7 +212,7 @@ def build_master():
 
 def main():
     parser = argparse.ArgumentParser(description="Unified build script for 24Clocks")
-    parser.add_argument("target", choices=["flasher", "master", "full"], help="Target to build")
+    parser.add_argument("target", choices=["flasher", "master", "full", "monitor"], help="Target to build or monitor")
     args = parser.parse_args()
 
     if args.target == "flasher":
@@ -224,6 +224,8 @@ def main():
         print(f"{Colors.YELLOW}Waiting 2 seconds before starting Master build...{Colors.NC}")
         time.sleep(2)
         build_master()
+    elif args.target == "monitor":
+        monitor_output("Device")
 
 if __name__ == "__main__":
     main()

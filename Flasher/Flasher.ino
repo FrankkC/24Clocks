@@ -26,8 +26,8 @@ const AVRFlashConfig slave1_config = {
 // Configuration for Slave 2
 const AVRFlashConfig slave2_config = {
     .reset_pin = 26,
-    .tx_pin = 34,
-    .rx_pin = 35,
+    .tx_pin = 22,
+    .rx_pin = 23,
     .uart_num = UART_NUM_2
 };
 
@@ -124,7 +124,7 @@ void loop() {
 
         // Flash Slave 2
         logger.println("\n--- Flashing Slave 2 ---");
-        logger.println("Config: RESET=26, TX=34, RX=35, UART2");
+        logger.println("Config: RESET=26, TX=22, RX=23, UART2");
         bool slave2_ok = flash_avr_firmware(firmware_slave_hex, slave2_config);
 
         if (slave2_ok) {

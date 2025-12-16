@@ -10,18 +10,10 @@
 #include <ezTime.h>
 #include <ArduinoOTA.h>
 #include <DualLogger.h>
+#include "CommonConfig.h"
 
-// WiFi Credentials
-const char* ssid = "WIFI_SSID";
-const char* password = "WIFI_PASSWORD";
-
-#define RXD1 32
-#define TXD1 33
-#define RXD2 35
-#define TXD2 34
-
-HardwareSerial SerialSlave1(1);
-HardwareSerial SerialSlave2(2);
+HardwareSerial SerialSlave1(SLAVE1_UART_NUM);
+HardwareSerial SerialSlave2(SLAVE2_UART_NUM);
 
 SerialLink slave1(SerialSlave1);
 SerialLink slave2(SerialSlave2);
@@ -61,7 +53,7 @@ void setup() {
 
     // WiFi Setup
     WiFi.mode(WIFI_STA);
-    WiFi.begin(ssid, password);
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     Serial.print("Connecting to WiFi");
     while (WiFi.waitForConnectResult() != WL_CONNECTED) {
         Serial.print(".");
@@ -75,8 +67,8 @@ void setup() {
     logger.begin();
     logger.println("Master Ready. Telnet logging active.");
 
-    SerialSlave1.begin(115200, SERIAL_8N1, RXD1, TXD1);
-    SerialSlave2.begin(115200, SERIAL_8N1, RXD2, TXD2);
+    SerialSlave1.begin(115200, SERIAL_8N1, SLAVE1_RX_PIN, SLAVE1_TX_PIN);
+    SerialSlave2.begin(115200, SERIAL_8N1, SLAVE2_RX_PIN, SLAVE2_TX_PIN);
 
     slave1.setCommandCallback(handleSlaveMessage1);
     slave2.setCommandCallback(handleSlaveMessage2);

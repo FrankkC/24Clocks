@@ -9,26 +9,24 @@
 #include <DualLogger.h>
 #include <WiFi.h>
 #include <ArduinoOTA.h>
-
-const char* ssid = "WIFI_SSID";
-const char* password = "WIFI_PASSWORD";
+#include "CommonConfig.h"
 
 DualLogger logger;
 
 // Configuration for Slave 1
 const AVRFlashConfig slave1_config = {
-    .reset_pin = 25,
-    .tx_pin = 33,
-    .rx_pin = 32,
-    .uart_num = UART_NUM_1
+    .reset_pin = SLAVE1_RESET_PIN,
+    .tx_pin = SLAVE1_TX_PIN,
+    .rx_pin = SLAVE1_RX_PIN,
+    .uart_num = (uart_port_t)SLAVE1_UART_NUM
 };
 
 // Configuration for Slave 2
 const AVRFlashConfig slave2_config = {
-    .reset_pin = 26,
-    .tx_pin = 22,
-    .rx_pin = 23,
-    .uart_num = UART_NUM_2
+    .reset_pin = SLAVE2_RESET_PIN,
+    .tx_pin = SLAVE2_TX_PIN,
+    .rx_pin = SLAVE2_RX_PIN,
+    .uart_num = (uart_port_t)SLAVE2_UART_NUM
 };
 
 bool flashing_done = false;
@@ -38,7 +36,7 @@ void setup() {
 
     // WiFi & OTA Setup
     WiFi.mode(WIFI_STA);
-    WiFi.begin(ssid, password);
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     while (WiFi.waitForConnectResult() != WL_CONNECTED) {
         Serial.println("Connection Failed! Rebooting...");
         delay(5000);

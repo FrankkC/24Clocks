@@ -145,12 +145,12 @@ void loop() {
 }
 
 void handleSlaveMessage1(const char* rawCommand) {
-    logger.println("handleSlaveMessage1");
+    //logger.println("handleSlaveMessage1");
     handleSlaveMessage(rawCommand, 1);
 }
 
 void handleSlaveMessage2(const char* rawCommand) {
-    logger.println("handleSlaveMessage2");
+    //logger.println("handleSlaveMessage2");
     handleSlaveMessage(rawCommand, 2);
 }
 
@@ -224,6 +224,9 @@ void handleCommand() {
             } else if (command.indexOf("SETNTP") != -1) {
                 setNTP();
                 logger.println("SETNTP OK");
+            } else if (command.indexOf("RESETHOME=") != -1) {
+                sendCommandToSlaves(command.c_str());
+                logger.println("RESET HOME OK");
             } else if (command.indexOf("SETHOME") != -1) {
                 timeMode = false;
                 countMode = false;

@@ -51,6 +51,7 @@ void addBoard(char boardIndex);
 void handleCommand(const char* rawCommand);
 void setLocalDisplayTime(const char* time);
 void setLocalHome();
+void setLocalCurrentTime(const char* time);
 
 void setup() {
 
@@ -166,6 +167,9 @@ void handleCommand(const char* rawCommand) {
                     masterLink.sendCommand("MSG_", "Fine tune executed");
                 }
             }
+        } else if (cmd.startsWith("RESETHOME=")) {
+            String newTime = cmd.substring(10);
+            setLocalCurrentTime(newTime.c_str());
         }
     }
 }
@@ -197,4 +201,21 @@ void setLocalHome() {
     }
 }
 
+void setLocalCurrentTime(const char* time) {
+    if (slaveOffset != 0 && slaveOffset != 1) {
+        return;
+    }
+    for (int i = 0; i < CONNECTED_BOARDS; i++) {
+
+        int timeDigit = (i/3) * 2 + slaveOffset;
+
+        // Set current position (not target) to match the displayed time
+        // This tells the motor "you are currently at this position"
+        boards[i].setCurrentPosition(0, boards[i].rotationToSteps(numbers[time[timeDigit] - '0'][i%3][0][0]));   // Left hour hand
+        boards[i].setCurrentPosition(1, boards[i].rotationToSteps(numbers[time[timeDigit] - '0'][i%3][0][1]));   // Left minutes hand
+        boards[i].setCurrentPosition(2, boards[i].rotationToSteps(numbers[time[timeDigit] - '0'][i%3][1][0]));   // Right hour hand
+        boards[i].setCurrentPosition(3, boards[i].rotationToSteps(numbers[time[timeDigit] - '0'][i%3][1][1]));   // Right minutes hand
+
+    }
+}
 

@@ -198,3 +198,10 @@ void SwitecX12::update()
         }
     }
 }
+
+void SwitecX12::setCurrentPosition(unsigned char motor, int pos)
+{
+    currentStep[motor] = pos;
+    targetStep[motor] = pos;
+    stopped[motor] = true;
+}

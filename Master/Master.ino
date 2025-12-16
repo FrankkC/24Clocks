@@ -234,6 +234,22 @@ void handleCommand() {
                 countMode = false;
                 setDisplayTime("0000");
                 logger.println("SET ZERO OK");
+            } else if (command.length() >= 5 && isdigit(command.charAt(0)) && isdigit(command.charAt(1)) && isdigit(command.charAt(2)) && (command.charAt(3) == '+' || command.charAt(3) == '-')) {
+                // RCL+D
+                int R = command.substring(0, 1).toInt();
+                int C = command.substring(1, 2).toInt();
+                int L = command.substring(2, 3).toInt();
+                float D = command.substring(3).toFloat();
+                
+                int slaveNum = (C < 2) ? 1 : 2;
+                int boardIdx = R;
+                int motorIdx = (C % 2) * 2 + L;
+                
+                char cmdBuffer[32];
+                sprintf(cmdBuffer, "FINETUNE=%d,%d,%.2f", boardIdx, motorIdx, D);
+                
+                sendCommandToSpecificSlave(slaveNum, cmdBuffer);
+                logger.println("FINETUNE SENT");
             } else if (command.indexOf("SETCOUNT=1") != -1) {
                 timeMode = false;
                 countMode = true;

@@ -149,6 +149,23 @@ void handleCommand(const char* rawCommand) {
             digitalWrite(LED_BUILTIN, HIGH);
         } else if (cmd.startsWith("SETLED=0")) {
             digitalWrite(LED_BUILTIN, LOW);
+        } else if (cmd.startsWith("FINETUNE=")) {
+            // Expected format: FINETUNE=B,M,D
+            // e.g. FINETUNE=0,2,3.5
+            String params = cmd.substring(9);
+            int firstComma = params.indexOf(',');
+            int secondComma = params.indexOf(',', firstComma + 1);
+            
+            if (firstComma > 0 && secondComma > 0) {
+                int boardIdx = params.substring(0, firstComma).toInt();
+                int motorIdx = params.substring(firstComma + 1, secondComma).toInt();
+                float degrees = params.substring(secondComma + 1).toFloat();
+                
+                if (boardIdx >= 0 && boardIdx < CONNECTED_BOARDS && motorIdx >= 0 && motorIdx < 4) {
+                    boards[boardIdx].fineTune(motorIdx, degrees);
+                    masterLink.sendCommand("MSG_", "Fine tune executed");
+                }
+            }
         }
     }
 }

@@ -28,6 +28,8 @@ class SwitecX12 {
         void setPosition(unsigned char motor, int pos);
         void setTargetRotation(unsigned char motor, float rot);
         float getCurrentRotation(unsigned char motor);
+        void fineTune(unsigned char motor, float rot);
+        void manualStep(unsigned char motor, int dir);
         // void setInitialRotation(float rot);
         int rotationToSteps(float rot);
         float stepsToRotation(int pos);

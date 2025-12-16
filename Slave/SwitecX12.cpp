@@ -154,9 +154,23 @@ float SwitecX12::getCurrentRotation(unsigned char motor) {
     return stepsToRotation(currentStep[motor]);
 }
 
-// void SwitecX12::setInitialRotation(float rot) {
-//     currentStep = rotationToSteps(rot);
-// }
+void SwitecX12::fineTune(unsigned char motor, float rot) {
+    int stepsToMove = rotationToSteps(rot);
+    int dirVal = (stepsToMove > 0) ? 1 : -1;
+    stepsToMove = abs(stepsToMove);
+    
+    for (int i=0; i<stepsToMove; i++) {
+        manualStep(motor, dirVal);
+        delayMicroseconds(staticDelay);
+    }
+}
+
+void SwitecX12::manualStep(unsigned char motor, int dirVal) {
+    digitalWrite(pinDir[motor], (dirVal > 0) == reversedDirection[motor] ? LOW : HIGH);
+    digitalWrite(pinStep[motor], HIGH);
+    delayMicroseconds(stepPulseMicrosec);
+    digitalWrite(pinStep[motor], LOW);
+}
 
 int SwitecX12::rotationToSteps(float rot) {
     return (int)(rot / 360.0f * steps);

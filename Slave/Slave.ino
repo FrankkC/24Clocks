@@ -11,6 +11,7 @@
 #include "ClockPositions.h"
 #include "ClockPins.h"
 #include <serialLink.h>
+#include <EEPROM.h>
 
 #define MASTER Serial
 
@@ -47,11 +48,23 @@ int spinMode = 0;
 
 SwitecX12 boards[CONNECTED_BOARDS];
 
+struct MotorPositions {
+    uint32_t sequence;
+    int positions[CONNECTED_BOARDS * 4];
+    uint8_t crc;
+};
+
+uint32_t currentSequence = 0;
+int lastSavedPositions[CONNECTED_BOARDS * 4];
+int eepromMaxEntries = 0;
+
 void addBoard(char boardIndex);
 void handleCommand(const char* rawCommand);
 void setLocalDisplayTime(const char* time);
 void setLocalHome();
 void setLocalCurrentTime(const char* time);
+void loadPositions();
+void checkAndSavePositions();
 
 void setup() {
 
@@ -85,6 +98,9 @@ void setup() {
 
     masterLink.sendCommand("MSG_","Launching Slave");
 
+    eepromMaxEntries = EEPROM.length() / sizeof(MotorPositions);
+    loadPositions();
+
 }
 
 void loop() {
@@ -94,6 +110,8 @@ void loop() {
     }
 
     masterLink.loop();
+
+    checkAndSavePositions();
 
 }
 
@@ -218,4 +236,96 @@ void setLocalCurrentTime(const char* time) {
 
     }
 }
+
+void loadPositions() {
+    uint32_t maxSeq = 0;
+    int bestSlot = -1;
+    
+    for (int i = 0; i < eepromMaxEntries; i++) {
+        MotorPositions entry;
+        EEPROM.get(i * sizeof(MotorPositions), entry);
+        
+        // Calculate CRC
+        uint8_t calcCrc = 0;
+        const uint8_t* p = (const uint8_t*)&entry;
+        for (size_t j = 0; j < sizeof(MotorPositions) - 1; j++) {
+            calcCrc ^= p[j];
+        }
+        
+        if (calcCrc == entry.crc) {
+            if (entry.sequence >= maxSeq) {
+                maxSeq = entry.sequence;
+                bestSlot = i;
+            }
+        }
+    }
+    
+    if (bestSlot >= 0) {
+        MotorPositions entry;
+        EEPROM.get(bestSlot * sizeof(MotorPositions), entry);
+        currentSequence = entry.sequence;
+        
+        for (int i = 0; i < CONNECTED_BOARDS; i++) {
+            for (int m = 0; m < 4; m++) {
+                int pos = entry.positions[i*4 + m];
+                boards[i].setCurrentPosition(m, pos);
+                lastSavedPositions[i*4 + m] = pos;
+            }
+        }
+        masterLink.sendCommand("MSG_", "Positions loaded from EEPROM");
+    } else {
+        masterLink.sendCommand("MSG_", "No valid positions in EEPROM");
+    }
+}
+
+void checkAndSavePositions() {
+    bool allStopped = true;
+    bool changed = false;
+    
+    for (int i = 0; i < CONNECTED_BOARDS; i++) {
+        if (!boards[i].allStopped()) {
+            allStopped = false;
+            break;
+        }
+    }
+    
+    if (allStopped) {
+        for (int i = 0; i < CONNECTED_BOARDS; i++) {
+            for (int m = 0; m < 4; m++) {
+                if (boards[i].currentStep[m] != lastSavedPositions[i*4 + m]) {
+                    changed = true;
+                    break;
+                }
+            }
+            if (changed) break;
+        }
+    }
+    
+    if (allStopped && changed) {
+        // Save
+        currentSequence++;
+        MotorPositions entry;
+        entry.sequence = currentSequence;
+        
+        for (int i = 0; i < CONNECTED_BOARDS; i++) {
+            for (int m = 0; m < 4; m++) {
+                entry.positions[i*4 + m] = boards[i].currentStep[m];
+                lastSavedPositions[i*4 + m] = boards[i].currentStep[m];
+            }
+        }
+        
+        // Calculate CRC
+        entry.crc = 0;
+        const uint8_t* p = (const uint8_t*)&entry;
+        for (size_t j = 0; j < sizeof(MotorPositions) - 1; j++) {
+            entry.crc ^= p[j];
+        }
+        
+        int slot = currentSequence % eepromMaxEntries;
+        EEPROM.put(slot * sizeof(MotorPositions), entry);
+        
+        // masterLink.sendCommand("MSG_", "Positions saved to EEPROM");
+    }
+}
+
 

@@ -67,6 +67,8 @@ void setup() {
     logger.begin();
     logger.println("Master Ready. Telnet logging active.");
 
+    SerialSlave1.setRxBufferSize(512);
+    SerialSlave2.setRxBufferSize(512);
     SerialSlave1.begin(115200, SERIAL_8N1, SLAVE1_RX_PIN, SLAVE1_TX_PIN);
     SerialSlave2.begin(115200, SERIAL_8N1, SLAVE2_RX_PIN, SLAVE2_TX_PIN);
 
@@ -219,6 +221,7 @@ void handleCommand() {
                 // Set timeMode = true to start updating the hands position
                 timeMode = true;
                 countMode = false;
+                minutesSinceMidnight = 9999; // Force update
 
                 logger.println("SET TIME OK");
             } else if (command.indexOf("SETNTP") != -1) {
@@ -226,6 +229,7 @@ void handleCommand() {
                 logger.println("SETNTP OK");
             } else if (command.indexOf("RESETHOME=") != -1) {
                 sendCommandToSlaves(command.c_str());
+                sendCommandToSlaves("GETPOS");
                 logger.println("RESET HOME OK");
             } else if (command.indexOf("SETHOME") != -1) {
                 timeMode = false;
@@ -252,6 +256,7 @@ void handleCommand() {
                 sprintf(cmdBuffer, "FINETUNE=%d,%d,%.2f", boardIdx, motorIdx, D);
                 
                 sendCommandToSpecificSlave(slaveNum, cmdBuffer);
+                sendCommandToSlaves("GETPOS");
                 logger.println("FINETUNE SENT");
             } else if (command.indexOf("SETCOUNT=1") != -1) {
                 timeMode = false;
@@ -275,6 +280,7 @@ void handleCommand() {
             } else if (command.indexOf("SETSPIN=") != -1) {
                 // TODO: Deactivate timeMode and countMode
                 sendCommandToSlaves(command.c_str());
+                sendCommandToSlaves("GETPOS");
                 logger.println("SET SPIN OK");
             } else if (command.indexOf("ECHO") != -1) {
                 logger.println("ECHO OK");
@@ -293,6 +299,9 @@ void handleCommand() {
                 char timeStr[5];
                 getTimeString(timeStr);
                 logger.println("timeStr=" + String(timeStr));
+            } else if (command.indexOf("GETPOS") != -1) {
+                sendCommandToSlaves("GETPOS");
+                logger.println("GETPOS SENT");
             } else if (command.indexOf("SETLED") != -1) {
                 sendCommandToSlaves(command.c_str());
                 logger.println("SETLED OK");
@@ -328,12 +337,14 @@ void setDisplayTime(const char* time) {
     char buffer [13];
     sprintf(buffer, "SETTIME=%s\0", time);
     sendCommandToSlaves(buffer);
+    sendCommandToSlaves("GETPOS");
     
 }
 
 void setHome() {
     logger.println("Going home...");
     sendCommandToSlaves("SETHOME");
+    sendCommandToSlaves("GETPOS");
 }
 
 void setNTP() {

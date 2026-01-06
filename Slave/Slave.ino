@@ -188,6 +188,16 @@ void handleCommand(const char* rawCommand) {
         } else if (cmd.startsWith("RESETHOME=")) {
             String newTime = cmd.substring(10);
             setLocalCurrentTime(newTime.c_str());
+        } else if (cmd.startsWith("GETPOS")) {
+            String posStr = "";
+            posStr.reserve(200);
+            for (int i = 0; i < CONNECTED_BOARDS; i++) {
+                for (int m = 0; m < 4; m++) {
+                    if (i > 0 || m > 0) posStr += ",";
+                    posStr += String(boards[i].getCurrentRotation(m), 2);
+                }
+            }
+            masterLink.sendCommand("POS=", posStr.c_str());
         }
     }
 }

@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 
-#define SL_MAX_COMMAND_LENGTH 20
+#define SL_MAX_COMMAND_LENGTH 256
 
 typedef void (*commandCallback)(const char*);
 

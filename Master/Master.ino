@@ -25,12 +25,12 @@ bool countMode = false;
 // TODO: Handle mode change
 bool timeMode = false;
 
-unsigned long timeOffset = 0;
+unsigned long timeOffsetMillis = 0;
 uint32_t secondsSinceMidnight = 0;
 uint16_t minutesSinceMidnight = 0;
 
 const uint32_t oneDaySeconds = 24*60*60;
-const uint32_t oneDayMillis = oneDaySeconds*1000;
+const unsigned long oneDayMillis = (unsigned long)oneDaySeconds*1000UL;
 
 void sendCommandToSlaves(const char* command);
 void sendCommandToSpecificSlave(int slaveNum, const char* command);
@@ -293,7 +293,7 @@ void handleCommand() {
                 logger.println("UPTIME=" + String(uptime) + " seconds");
                 logger.println("countMode=" + String(countMode));
                 logger.println("timeMode=" + String(timeMode));
-                logger.println("timeOffset=" + String(timeOffset) + " seconds");
+                logger.println("timeOffsetMillis=" + String(timeOffsetMillis) + " ms");
                 logger.println("secondsSinceMidnight=" + String(secondsSinceMidnight) + " seconds");
                 logger.println("minutesSinceMidnight=" + String(minutesSinceMidnight) + " minutes");
                 char timeStr[5];
@@ -315,19 +315,20 @@ void handleCommand() {
 }
 
 void setTimeInSeconds(unsigned long secondsSinceMidnight) {
-    // timeOffset is the difference between the desired time and millis()/1000,
-    // wrapped to stay within one day.
-    unsigned long currentSecondsOfDay = (millis() / 1000) % oneDaySeconds;
-    if (secondsSinceMidnight >= currentSecondsOfDay) {
-        timeOffset = secondsSinceMidnight - currentSecondsOfDay;
+    // timeOffsetMillis is the difference between the desired time and millis(),
+    // wrapped to stay within one day (in milliseconds).
+    unsigned long targetMillis = secondsSinceMidnight * 1000UL;
+    unsigned long currentMillisOfDay = millis() % oneDayMillis;
+    if (targetMillis >= currentMillisOfDay) {
+        timeOffsetMillis = targetMillis - currentMillisOfDay;
     } else {
-        timeOffset = secondsSinceMidnight - currentSecondsOfDay + oneDaySeconds;
+        timeOffsetMillis = targetMillis - currentMillisOfDay + oneDayMillis;
     }
 }
 
 unsigned long getTimeInSeconds() {
     // The returned value must be between 0 and oneDaySeconds-1
-    return (timeOffset + millis() / 1000) % oneDaySeconds;
+    return ((timeOffsetMillis + millis()) % oneDayMillis) / 1000UL;
 }
 
 void setDisplayTime(const char* time) {

@@ -25,7 +25,7 @@ bool countMode = false;
 // TODO: Handle mode change
 bool timeMode = false;
 
-uint32_t timeOffset = 0;
+unsigned long timeOffset = 0;
 uint32_t secondsSinceMidnight = 0;
 uint16_t minutesSinceMidnight = 0;
 
@@ -315,19 +315,19 @@ void handleCommand() {
 }
 
 void setTimeInSeconds(unsigned long secondsSinceMidnight) {
-    //assert(secondsSinceMidnight < oneDaySeconds);
-    // timeOffset is the difference between the time we want to set and what is reported by millis().
-    // the modulo 86400 is used to bring millis() back to a value within a day (if the device has been on for more than 24h)
-    // if secondsSinceMidnight < oneDaySeconds, the result of timeOffset will always be between 0 and oneDaySeconds-1
-    timeOffset = (secondsSinceMidnight - (millis()/1000)%oneDaySeconds) < 0 ?
-        secondsSinceMidnight - (millis()/1000)%oneDaySeconds + oneDaySeconds :
-        secondsSinceMidnight - (millis()/1000)%oneDaySeconds;
-
+    // timeOffset is the difference between the desired time and millis()/1000,
+    // wrapped to stay within one day.
+    unsigned long currentSecondsOfDay = (millis() / 1000) % oneDaySeconds;
+    if (secondsSinceMidnight >= currentSecondsOfDay) {
+        timeOffset = secondsSinceMidnight - currentSecondsOfDay;
+    } else {
+        timeOffset = secondsSinceMidnight - currentSecondsOfDay + oneDaySeconds;
+    }
 }
 
 unsigned long getTimeInSeconds() {
     // The returned value must be between 0 and oneDaySeconds-1
-    return (timeOffset + millis()/1000)%oneDaySeconds;
+    return (timeOffset + millis() / 1000) % oneDaySeconds;
 }
 
 void setDisplayTime(const char* time) {

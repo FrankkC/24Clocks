@@ -2,7 +2,7 @@
 
 This repository contains the source code (Master, Slave, and Flasher) for a 24-dial kinetic clock.
 
-For the complete project description, construction details, hardware, and PCB files, please refer to the project on Hackaday.io: [[HACKADAY.IO PROJECT](https://hackaday.io/project/204370-clock)]
+For the complete project description, construction details, hardware, and PCB files, please refer to the project on Hackaday.io: [[HACKADAY.IO PROJECT](https://hackaday.io/project/204370-clock-24)]
 
 ## Code Architecture (Master/Slave/Flasher)
 
@@ -14,9 +14,28 @@ The system consists of three main software components:
 
 ### Master (ESP32)
 
-*   **WiFi and Time Synchronization:** Connects to a WiFi network (credentials in `Master/wifiManager.cpp`) and uses the `ezTime` library to get the current time via NTP.
-*   **TCP Server (Telnet):** The `DualLogger` library starts a TCP server on port 23. This acts as a command-line interface to receive commands (e.g., `SETTIME=HHMM`, `SETHOME`) from a Telnet client or the 24Client Android app.
-*   **Command Logic:** The main loop (`Master.ino`) checks the time. When the minute changes, it formats a command string (e.g., `CMDSETTIME=1209;`) and sends it to both Slaves via the `serialLink` library.
+*   **WiFi and Time Synchronization:** Connects to a WiFi network (credentials in `common/CommonConfig.h`) and uses the `ezTime` library to get the current time via NTP.
+*   **TCP Server (Telnet):** The `DualLogger` library starts a TCP server on port 23. This acts as a command-line interface to receive commands from a Telnet client or the 24Client Android app.
+*   **Structured Protocol:** All responses follow a structured format with prefixes:
+    *   `OK <command>` — Command executed successfully
+    *   `ERR <command> <message>` — Command failed with error details
+    *   `LOG <text>` — Informational log message
+    *   `STATUS <key>=<value>` — Status information (from DEBUG command)
+    *   `POS <slaveId> <values>` — Hand position data (24 comma-separated floats per slave)
+*   **Available Commands:**
+    *   `SETTIME=HHMM` — Set the display time manually
+    *   `SETNTP` — Sync time via NTP and update display immediately
+    *   `SETHOME` — Move all hands to home position (0°)
+    *   `SETZERO` — Set all hands to "0000" display
+    *   `RESETHOME` — Reset the current position reference to match a given time
+    *   `FINETUNE=R,C,L,D` — Fine-tune a specific hand (Row, Column, hand/Lance, Degrees offset)
+    *   `GETPOS` — Request current hand positions from both slaves
+    *   `SETLED=0/1` — Turn slave LEDs off/on
+    *   `DEBUG` — Print system status (uptime, time mode, offsets, current time)
+    *   `UPTIME` — Print system uptime
+    *   `ECHO` — Echo test
+    *   `QUIT` — Disconnect the current Telnet client
+*   **Command Logic:** The main loop checks the time every cycle. When the minute changes, it formats a command string and sends it to both Slaves via the `serialLink` library.
 *   **OTA Support:** Supports Over-The-Air (OTA) updates for wireless firmware flashing.
 
 ### Slave (Arduino Mega 2560)
@@ -28,6 +47,7 @@ The system consists of three main software components:
 *   **Motor Control:** Uses the `SwitecX12` library to drive the stepper motors. The current version moves the motors at a constant speed. For the very outdated version with acceleration support, please refer to the tag `last-commit-with-accel-support`.
 *   **Font Matrix (ClockPositions.h):** The heart of the visual logic. It contains an array that maps each digit (0-9) to a set of angles (0, 90, 180, 270) for the 12 hands that make up that specific digit.
 *   **Pin Mapping (ClockPins.h):** Defines the GPIO pins of the Arduino Mega used to drive the motor drivers.
+*   **EEPROM Position Persistence:** After every hand movement, once all motors have stopped, the Slave saves the current positions to EEPROM using a wear-leveling ring buffer with CRC validation. On boot, positions are restored from EEPROM, so the system retains hand calibration across power cycles (as long as the Slave doesn't lose power — see the UPS section on the Hackaday project page).
 
 ### Flasher (ESP32)
 
@@ -43,7 +63,7 @@ The project relies on a few external libraries and some internal ones located in
 *   **`ezTime`**: Used by the Master for NTP time synchronization.
 
 ### Internal Components (included in this repository)
-*   **`DualLogger`**: (`lib/DualLogger/`) A shared library that provides a unified interface for logging to both Serial and Telnet (port 23). Used by both Master and Flasher.
+*   **`DualLogger`**: (`lib/DualLogger/`) A shared library that provides a unified interface for logging to both Serial and Telnet (port 23). Supports a single Telnet client connection with `disconnectClient()` to forcefully drop a session. Used by both Master and Flasher.
 *   **`serialLink`**: (`lib/serialLink/`) A custom library for handling serial communication between the Master and Slaves.
 *   **`SwitecX12`**: (`Slave/SwitecX12.*`) A library for controlling the X12 stepper motors. Note: This is included directly in the Slave sketch folder. The library is based on the original work by [[Guy Carpenter (Clearwater Software, 2017)](https://guy.carpenter.id.au/gaugette/2017/04/29/switecx25-quad-driver-tests/)] and has been modified for the specific needs of this project.
 *   **`avr_flash_arduino`**: (`Flasher/avr_flash_arduino.*`) A library implementing the STK500 protocol to flash ATmega2560 boards. Based on [Laukik Hase's work](https://github.com/ESP32-Musings/OTA_update_AVR_using_ESP32).
@@ -53,7 +73,7 @@ The project relies on a few external libraries and some internal ones located in
 1.  **Software Configuration:**
     *   Open the `Master/Master.ino` and `Slave/Slave.ino` sketches in the Arduino IDE.
     *   Install the required external libraries (e.g., `ezTime`) using the Library Manager.
-    *   In `Master/wifiManager.cpp`, configure your WiFi credentials.
+    *   In `common/CommonConfig.h`, configure your WiFi credentials.
 2.  **Upload Code to Slaves:**
     *   **Method 1 (Direct Upload):** Upload `Slave.ino` directly to both Arduino Mega boards using a USB cable.
     *   **Method 2 (Using the Serial Flasher):** This method uses a dedicated ESP32 to program the Slave boards without needing to connect them to a computer. (See the **Build Automation** section below for details).
@@ -63,8 +83,8 @@ The project relies on a few external libraries and some internal ones located in
     *   This code operates "open-loop", meaning it assumes the initial position of the hands and cannot verify it.
     *   Before starting the system, it is mandatory to manually position all 48 hands to the "home" position (vertical, 12 o'clock). The `SETHOME` command in the software will move the hands to 0°, which must correspond to this physical position.
 5.  **Operation:**
-    *   On startup, the Master will connect to WiFi, synchronize the time, and start sending commands to the Slaves.
-    *   You can connect to the Master's IP address via a Telnet client (port 80) to send commands manually.
+    *   On startup, the Master will connect to WiFi, synchronize the time via NTP, and start sending commands to the Slaves.
+    *   You can connect to the Master's IP address via a Telnet client (port 23) to send commands manually.
 
 ### Build Automation (`build.py`)
 
@@ -109,4 +129,3 @@ Run the script from the terminal:
 The script automatically detects if `SERIAL_PORT` is an IP address or a serial device:
 *   **Serial:** Opens `arduino-cli monitor`.
 *   **IP (OTA):** Connects via Telnet (port 23) to stream logs directly from the device. It handles connection retries and timeouts automatically.
-

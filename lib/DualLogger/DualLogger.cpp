@@ -42,6 +42,12 @@ String DualLogger::readStringUntil(char terminator) {
     return "";
 }
 
+void DualLogger::disconnectClient() {
+    if (_client && _client.connected()) {
+        _client.stop();
+    }
+}
+
 size_t DualLogger::write(uint8_t c) {
     Serial.write(c);
     if (_client && _client.connected()) {

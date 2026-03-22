@@ -17,6 +17,9 @@ public:
     // Read a string until newline (helper for commands)
     String readStringUntil(char terminator);
 
+    // Disconnect the current Telnet client
+    void disconnectClient();
+
     virtual size_t write(uint8_t c) override;
     virtual size_t write(const uint8_t *buffer, size_t size) override;
 

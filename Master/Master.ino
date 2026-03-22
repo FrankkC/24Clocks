@@ -20,8 +20,6 @@ SerialLink slave2(SerialSlave2);
 
 DualLogger logger;
 
-//int timer = 0;
-bool countMode = false;
 // TODO: Handle mode change
 bool timeMode = false;
 
@@ -122,17 +120,6 @@ void loop() {
     slave1.loop();
     slave2.loop();
 
-    /*if (!countMode && millis() > 10000) {
-        countMode = true;
-    }*/
-
-    /*if (countMode && timer != (millis()/1000)%10) {
-        timer = (millis()/1000)%10;
-        char time[5];
-        sprintf (time, "%d%d%d%d\0", timer, timer, timer, timer, timer);
-        setDisplayTime(time);
-    }*/
-
     // Update every minute
     unsigned int newMinutesSinceMidnight = getTimeInSeconds() / 60;
     if (timeMode && newMinutesSinceMidnight != minutesSinceMidnight) {
@@ -157,7 +144,13 @@ void handleSlaveMessage2(const char* rawCommand) {
 }
 
 void handleSlaveMessage(const char* rawCommand, int slaveNum) {
-    logger.printf("[SLAVE %d] %s\n", slaveNum, rawCommand);
+    String msg(rawCommand);
+    // If it's a POS message, emit structured POS line
+    if (msg.startsWith("POS=")) {
+        logger.printf("POS %d %s\n", slaveNum, msg.substring(4).c_str());
+    } else {
+        logger.printf("LOG [SLAVE %d] %s\n", slaveNum, rawCommand);
+    }
 }
 
 void sendCommandToSlaves(const char* command) {
@@ -178,7 +171,7 @@ void getTimeString(char* buffer) {
     unsigned int minutes = minutesSinceMidnight%60;
     unsigned int hours = (minutesSinceMidnight-minutes)/60;
 
-    logger.printf("newTime %d --> %02d%02d\n", minutesSinceMidnight, hours, minutes);
+    logger.printf("LOG newTime %d --> %02d%02d\n", minutesSinceMidnight, hours, minutes);
     sprintf(buffer, "%02d%02d", hours, minutes);
 }
 
@@ -195,121 +188,115 @@ void handleCommand() {
         command = logger.readStringUntil('\n');
     }
 
-    if (command != "") {
-        command.trim(); // Remove whitespace/newlines
+    command.trim();
+    if (command == "") return;
 
-        if (command != "") {
+    logger.println("LOG Command received: " + command);
 
-            logger.println("Command received: " + command);
+    // Split command into name and parameter
+    String cmdName = command;
+    String cmdParam = "";
+    int eqPos = command.indexOf('=');
+    if (eqPos != -1) {
+        cmdName = command.substring(0, eqPos);
+        cmdParam = command.substring(eqPos + 1);
+    }
 
-            if (command.indexOf("SETTIME=") != -1) {
-                String newTime = command.substring(command.indexOf("TIME=") + 5, command.indexOf("TIME=") + 9);
-
-                // Convert the time into seconds since midnight
-                unsigned int tempIntTime = atoi(newTime.c_str());
-                unsigned int minutes = tempIntTime % 100;
-                unsigned int hours = (tempIntTime - minutes) / 100;
-
-                // Invert the following lines if we are using the seconds count instead of the minutes
-                unsigned long newTimeInSeconds = minutes * 60 + hours * 60 * 60;
-                //unsigned long newTimeInSeconds = minutes + hours * 60;
-
-
-                // Set timeoffset to this value
-                setTimeInSeconds(newTimeInSeconds);
-
-                // Set timeMode = true to start updating the hands position
-                timeMode = true;
-                countMode = false;
-                minutesSinceMidnight = 9999; // Force update
-
-                logger.println("SET TIME OK");
-            } else if (command.indexOf("SETNTP") != -1) {
-                setNTP();
-                logger.println("SETNTP OK");
-            } else if (command.indexOf("RESETHOME=") != -1) {
-                sendCommandToSlaves(command.c_str());
-                sendCommandToSlaves("GETPOS");
-                logger.println("RESET HOME OK");
-            } else if (command.indexOf("SETHOME") != -1) {
-                timeMode = false;
-                countMode = false;
-                setHome();
-                logger.println("SET HOME OK");
-            } else if (command.indexOf("SETZERO") != -1) {
-                timeMode = false;
-                countMode = false;
-                setDisplayTime("0000");
-                logger.println("SET ZERO OK");
-            } else if (command.length() >= 5 && isdigit(command.charAt(0)) && isdigit(command.charAt(1)) && isdigit(command.charAt(2)) && (command.charAt(3) == '+' || command.charAt(3) == '-')) {
-                // RCL+D
-                int R = command.substring(0, 1).toInt();
-                int C = command.substring(1, 2).toInt();
-                int L = command.substring(2, 3).toInt();
-                float D = command.substring(3).toFloat();
-                
-                int slaveNum = (C < 2) ? 1 : 2;
-                int boardIdx = R;
-                int motorIdx = (C % 2) * 2 + L;
-                
-                char cmdBuffer[32];
-                sprintf(cmdBuffer, "FINETUNE=%d,%d,%.2f", boardIdx, motorIdx, D);
-                
-                sendCommandToSpecificSlave(slaveNum, cmdBuffer);
-                sendCommandToSlaves("GETPOS");
-                logger.println("FINETUNE SENT");
-            } else if (command.indexOf("SETCOUNT=1") != -1) {
-                timeMode = false;
-                countMode = true;
-                logger.println("SET COUNT MODE ON OK");
-            } else if (command.indexOf("SETCOUNT=0") != -1) {
-                countMode = false;
-                logger.println("SET COUNT MODE OFF OK");
-            } else if (command.indexOf("SETMIN=0") != -1) {
-                sendCommandToSlaves("SETMIN=0");
-                logger.println("SETMIN=0 OK");
-            } else if (command.indexOf("SETMIN=1") != -1) {
-                sendCommandToSlaves("SETMIN=1");
-                logger.println("SETMIN=1 OK");
-            } else if (command.indexOf("SETHOU=0") != -1) {
-                sendCommandToSlaves("SETHOU=0");
-                logger.println("SETHOU=0 OK");
-            } else if (command.indexOf("SETHOU=1") != -1) {
-                sendCommandToSlaves("SETHOU=1");
-                logger.println("SETHOU=1 OK");
-            } else if (command.indexOf("SETSPIN=") != -1) {
-                // TODO: Deactivate timeMode and countMode
-                sendCommandToSlaves(command.c_str());
-                sendCommandToSlaves("GETPOS");
-                logger.println("SET SPIN OK");
-            } else if (command.indexOf("ECHO") != -1) {
-                logger.println("ECHO OK");
-            } else if (command.indexOf("UPTIME") != -1) {
-                // Print device uptime in seconds
-                unsigned long uptime = millis() / 1000;
-                logger.println("UPTIME=" + String(uptime) + " seconds");
-            } else if (command.indexOf("DEBUG") != -1) {
-                unsigned long uptime = millis() / 1000;
-                logger.println("UPTIME=" + String(uptime) + " seconds");
-                logger.println("countMode=" + String(countMode));
-                logger.println("timeMode=" + String(timeMode));
-                logger.println("timeOffsetMillis=" + String(timeOffsetMillis) + " ms");
-                logger.println("secondsSinceMidnight=" + String(secondsSinceMidnight) + " seconds");
-                logger.println("minutesSinceMidnight=" + String(minutesSinceMidnight) + " minutes");
-                char timeStr[5];
-                getTimeString(timeStr);
-                logger.println("timeStr=" + String(timeStr));
-            } else if (command.indexOf("GETPOS") != -1) {
-                sendCommandToSlaves("GETPOS");
-                logger.println("GETPOS SENT");
-            } else if (command.indexOf("SETLED") != -1) {
-                sendCommandToSlaves(command.c_str());
-                logger.println("SETLED OK");
-            } else {
-                logger.println("UNKNOWN COMMAND");
-            }
-
+    // Match commands by exact name
+    if (cmdName == "FINETUNE") {
+        // Format: FINETUNE=R,C,L,D (e.g. FINETUNE=0,1,0,+5.00)
+        // R=row, C=col, L=hand(0/1), D=delta degrees
+        int c1 = cmdParam.indexOf(',');
+        int c2 = cmdParam.indexOf(',', c1 + 1);
+        int c3 = cmdParam.indexOf(',', c2 + 1);
+        if (c1 == -1 || c2 == -1 || c3 == -1) {
+            logger.println("ERR FINETUNE invalid format (use R,C,L,D)");
+            return;
         }
+        int R = cmdParam.substring(0, c1).toInt();
+        int C = cmdParam.substring(c1 + 1, c2).toInt();
+        int L = cmdParam.substring(c2 + 1, c3).toInt();
+        float D = cmdParam.substring(c3 + 1).toFloat();
+
+        int slaveNum = (C < 2) ? 1 : 2;
+        int boardIdx = R;
+        int motorIdx = (C % 2) * 2 + L;
+
+        char cmdBuffer[32];
+        sprintf(cmdBuffer, "FINETUNE=%d,%d,%.2f", boardIdx, motorIdx, D);
+
+        sendCommandToSpecificSlave(slaveNum, cmdBuffer);
+        sendCommandToSlaves("GETPOS");
+        logger.println("OK FINETUNE");
+
+    } else if (cmdName == "SETTIME") {
+        if (cmdParam.length() < 4) {
+            logger.println("ERR SETTIME invalid parameter");
+            return;
+        }
+        unsigned int tempIntTime = atoi(cmdParam.c_str());
+        unsigned int minutes = tempIntTime % 100;
+        unsigned int hours = (tempIntTime - minutes) / 100;
+        unsigned long newTimeInSeconds = minutes * 60 + hours * 60 * 60;
+
+        setTimeInSeconds(newTimeInSeconds);
+        timeMode = true;
+        minutesSinceMidnight = 9999; // Force update
+        logger.println("OK SETTIME");
+
+    } else if (cmdName == "SETNTP") {
+        setNTP();
+        logger.println("OK SETNTP");
+
+    } else if (cmdName == "RESETHOME") {
+        sendCommandToSlaves(command.c_str());
+        sendCommandToSlaves("GETPOS");
+        logger.println("OK RESETHOME");
+
+    } else if (cmdName == "SETHOME") {
+        timeMode = false;
+        setHome();
+        logger.println("OK SETHOME");
+
+    } else if (cmdName == "SETZERO") {
+        timeMode = false;
+        setDisplayTime("0000");
+        logger.println("OK SETZERO");
+
+    } else if (cmdName == "SETLED") {
+        sendCommandToSlaves(command.c_str());
+        logger.println("OK SETLED");
+
+    } else if (cmdName == "ECHO") {
+        logger.println("OK ECHO");
+
+    } else if (cmdName == "QUIT") {
+        logger.println("OK QUIT");
+        logger.disconnectClient();
+
+    } else if (cmdName == "UPTIME") {
+        unsigned long uptime = millis() / 1000;
+        logger.println("STATUS uptime=" + String(uptime));
+        logger.println("OK UPTIME");
+
+    } else if (cmdName == "DEBUG") {
+        unsigned long uptime = millis() / 1000;
+        char timeStr[5];
+        getTimeString(timeStr);
+        logger.println("STATUS uptime=" + String(uptime));
+        logger.println("STATUS timeMode=" + String(timeMode));
+        logger.println("STATUS timeOffsetMillis=" + String(timeOffsetMillis));
+        logger.println("STATUS secondsSinceMidnight=" + String(secondsSinceMidnight));
+        logger.println("STATUS minutesSinceMidnight=" + String(minutesSinceMidnight));
+        logger.println("STATUS timeStr=" + String(timeStr));
+        logger.println("OK DEBUG");
+
+    } else if (cmdName == "GETPOS") {
+        sendCommandToSlaves("GETPOS");
+        logger.println("OK GETPOS");
+
+    } else {
+        logger.println("ERR UNKNOWN " + command);
     }
 
 }
@@ -333,7 +320,7 @@ unsigned long getTimeInSeconds() {
 
 void setDisplayTime(const char* time) {
 
-    logger.printf("setDisplayTime: %s\n", time);
+    logger.printf("LOG setDisplayTime: %s\n", time);
 
     char buffer [13];
     sprintf(buffer, "SETTIME=%s\0", time);
@@ -343,7 +330,7 @@ void setDisplayTime(const char* time) {
 }
 
 void setHome() {
-    logger.println("Going home...");
+    logger.println("LOG Going home...");
     sendCommandToSlaves("SETHOME");
     sendCommandToSlaves("GETPOS");
 }
@@ -355,12 +342,11 @@ void setNTP() {
         timezone.setLocation("Europe/Rome");
 
         setTimeInSeconds(timezone.hour()*60*60 + timezone.minute()*60 + timezone.second());
-        logger.println("NTP time: " + timezone.dateTime());
+        logger.println("LOG NTP time: " + timezone.dateTime());
 
         timeMode = true;
-        countMode = false;
     } else {
-        logger.println("NTP time not available");
+        logger.println("LOG NTP time not available");
     }
 
 }

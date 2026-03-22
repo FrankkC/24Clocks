@@ -345,6 +345,12 @@ void setNTP() {
         logger.println("LOG NTP time: " + timezone.dateTime());
 
         timeMode = true;
+
+        // Force immediate display update
+        minutesSinceMidnight = getTimeInSeconds() / 60;
+        char timeStr[5];
+        getTimeString(timeStr);
+        setDisplayTime(timeStr);
     } else {
         logger.println("LOG NTP time not available");
     }

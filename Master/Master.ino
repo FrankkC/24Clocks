@@ -143,7 +143,13 @@ void loop() {
         // On the hour: resync NTP before moving hands
         if (newMinutesSinceMidnight % 60 == 0) {
             logger.println("LOG Hourly NTP resync...");
-            setNTP();
+            if (!setNTP()) {
+                // NTP failed, move hands using internal clock
+                minutesSinceMidnight = newMinutesSinceMidnight;
+                char timeStr[5];
+                getTimeString(timeStr);
+                setDisplayTime(timeStr);
+            }
         } else {
             minutesSinceMidnight = newMinutesSinceMidnight;
             char timeStr[5];

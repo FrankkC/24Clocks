@@ -84,14 +84,18 @@ def build_flasher():
 
     # Step 4: Upload to ESP32
     print(f"{Colors.YELLOW}[4/4] Uploading Flasher firmware to ESP32...{Colors.NC}")
-    run_command([
+    upload_cmd = [
         "arduino-cli", "upload",
         "--fqbn", "esp32:esp32:esp32:UploadSpeed=460800",
         "--port", SERIAL_PORT,
         "--input-dir", "build",
         "--upload-field", f"password={OTA_PASSWORD}",
         "Flasher.ino"
-    ], cwd=FLASHER_DIR)
+    ]
+    if re.match(r"^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$", SERIAL_PORT):
+        upload_cmd.insert(4, "--protocol")
+        upload_cmd.insert(5, "network")
+    run_command(upload_cmd, cwd=FLASHER_DIR)
     print(f"{Colors.GREEN}✓ Flasher uploaded successfully{Colors.NC}\n")
 
     monitor_output("Flasher", b"Both Slaves Flashed Successfully", b"Some Slaves Failed to Flash")
@@ -202,14 +206,18 @@ def build_master():
 
     # Step 2: Upload to ESP32
     print(f"{Colors.YELLOW}[2/2] Uploading Master firmware to ESP32...{Colors.NC}")
-    run_command([
+    upload_cmd = [
         "arduino-cli", "upload",
         "--fqbn", "esp32:esp32:esp32:UploadSpeed=460800",
         "--port", SERIAL_PORT,
         "--input-dir", "build",
         "--upload-field", f"password={OTA_PASSWORD}",
         "Master.ino"
-    ], cwd=MASTER_DIR)
+    ]
+    if re.match(r"^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$", SERIAL_PORT):
+        upload_cmd.insert(4, "--protocol")
+        upload_cmd.insert(5, "network")
+    run_command(upload_cmd, cwd=MASTER_DIR)
     print(f"{Colors.GREEN}✓ Master uploaded successfully{Colors.NC}\n")
 
     monitor_output("Master")

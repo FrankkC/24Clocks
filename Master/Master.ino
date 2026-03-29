@@ -114,9 +114,26 @@ void setup() {
 
 }
 
+void sendDebugStatus() {
+    unsigned long uptime = millis() / 1000;
+    char timeStr[5];
+    getTimeString(timeStr);
+    logger.println("STATUS uptime=" + String(uptime));
+    logger.println("STATUS timeMode=" + String(timeMode));
+    logger.println("STATUS timeOffsetMillis=" + String(timeOffsetMillis));
+    logger.println("STATUS secondsSinceMidnight=" + String(secondsSinceMidnight));
+    logger.println("STATUS minutesSinceMidnight=" + String(minutesSinceMidnight));
+    logger.println("STATUS timeStr=" + String(timeStr));
+}
+
 void loop() {
     ArduinoOTA.handle();
     logger.handle(); // Handle Telnet clients
+
+    if (logger.consumeNewClient()) {
+        sendDebugStatus();
+    }
+
     slave1.loop();
     slave2.loop();
 

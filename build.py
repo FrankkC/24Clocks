@@ -8,6 +8,10 @@ import socket
 import re
 
 # --- Configuration ---
+# To override these values locally, create build.local.py (not tracked by git), e.g.:
+#   SERIAL_PORT = "192.168.1.100"           # OTA upload via IP
+#   SERIAL_PORT = "/dev/tty.usbserial-120"  # USB serial upload
+#   OTA_PASSWORD = "secret"                 # if ArduinoOTA.setPassword() is set in firmware
 SERIAL_PORT = ""
 OTA_PASSWORD = ""
 BAUD_RATE = "115200"

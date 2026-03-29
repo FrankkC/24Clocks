@@ -2,6 +2,11 @@
 #define COMMON_CONFIG_H
 
 // WiFi Configuration
+// To override these values locally, create CommonConfig.local.h (not tracked by git), e.g.:
+//   #undef WIFI_SSID
+//   #define WIFI_SSID "MyNetwork"
+//   #undef WIFI_PASSWORD
+//   #define WIFI_PASSWORD "mypassword"
 #define WIFI_SSID "WIFI_SSID"
 #define WIFI_PASSWORD "WIFI_PASSWORD"
 

@@ -15,10 +15,19 @@ void DualLogger::handle() {
             println("Connected to ESP32 Telnet Log");
             // Flush input buffer on new connection
             while(_client.available()) _client.read();
+            _newClientConnected = true;
         } else {
             _server.available().stop(); // Reject multiple clients
         }
     }
+}
+
+bool DualLogger::consumeNewClient() {
+    if (_newClientConnected) {
+        _newClientConnected = false;
+        return true;
+    }
+    return false;
 }
 
 int DualLogger::available() {

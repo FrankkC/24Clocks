@@ -8,10 +8,14 @@ import socket
 import re
 
 # --- Configuration ---
-SERIAL_PORT = "10.10.0.7"
-# SERIAL_PORT = "/dev/tty.usbserial-1310"
+SERIAL_PORT = ""
 OTA_PASSWORD = ""
 BAUD_RATE = "115200"
+
+# Load local overrides if present (not tracked by git)
+_local_config = os.path.join(os.path.dirname(os.path.abspath(__file__)), "build.local.py")
+if os.path.exists(_local_config):
+    exec(open(_local_config).read())
 
 # Paths
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))

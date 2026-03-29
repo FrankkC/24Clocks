@@ -5,6 +5,11 @@
 #define WIFI_SSID "WIFI_SSID"
 #define WIFI_PASSWORD "WIFI_PASSWORD"
 
+// Load local overrides if present (not tracked by git)
+#if __has_include("CommonConfig.local.h")
+#include "CommonConfig.local.h"
+#endif
+
 // Slave 1 Configuration
 #define SLAVE1_TX_PIN 32
 #define SLAVE1_RX_PIN 33

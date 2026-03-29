@@ -21,7 +21,7 @@ SerialLink slave2(SerialSlave2);
 DualLogger logger;
 
 // TODO: Handle mode change
-bool timeMode = false;
+bool ntpMode = false;
 
 unsigned long timeOffsetMillis = 0;
 uint32_t secondsSinceMidnight = 0;
@@ -41,7 +41,7 @@ void setTimeInSeconds(unsigned long secondsSinceMidnight);
 unsigned long getTimeInSeconds();
 void setDisplayTime(const char* time);
 void setHome();
-void setNTP();
+bool setNTP();
 
 void setup() {
 
@@ -119,7 +119,7 @@ void sendDebugStatus() {
     char timeStr[5];
     getTimeString(timeStr);
     logger.println("STATUS uptime=" + String(uptime));
-    logger.println("STATUS timeMode=" + String(timeMode));
+    logger.println("STATUS ntpMode=" + String(ntpMode));
     logger.println("STATUS timeOffsetMillis=" + String(timeOffsetMillis));
     logger.println("STATUS secondsSinceMidnight=" + String(secondsSinceMidnight));
     logger.println("STATUS minutesSinceMidnight=" + String(minutesSinceMidnight));
@@ -139,11 +139,17 @@ void loop() {
 
     // Update every minute
     unsigned int newMinutesSinceMidnight = getTimeInSeconds() / 60;
-    if (timeMode && newMinutesSinceMidnight != minutesSinceMidnight) {
-        minutesSinceMidnight = newMinutesSinceMidnight;
-        char timeStr[5];
-        getTimeString(timeStr);
-        setDisplayTime(timeStr);
+    if (ntpMode && newMinutesSinceMidnight != minutesSinceMidnight) {
+        // On the hour: resync NTP before moving hands
+        if (newMinutesSinceMidnight % 60 == 0) {
+            logger.println("LOG Hourly NTP resync...");
+            setNTP();
+        } else {
+            minutesSinceMidnight = newMinutesSinceMidnight;
+            char timeStr[5];
+            getTimeString(timeStr);
+            setDisplayTime(timeStr);
+        }
     }
 
     handleCommand();
@@ -257,7 +263,7 @@ void handleCommand() {
         unsigned long newTimeInSeconds = minutes * 60 + hours * 60 * 60;
 
         setTimeInSeconds(newTimeInSeconds);
-        timeMode = true;
+        ntpMode = false;
         minutesSinceMidnight = 9999; // Force update
         logger.println("OK SETTIME");
 
@@ -271,12 +277,12 @@ void handleCommand() {
         logger.println("OK RESETHOME");
 
     } else if (cmdName == "SETHOME") {
-        timeMode = false;
+        ntpMode = false;
         setHome();
         logger.println("OK SETHOME");
 
     } else if (cmdName == "SETZERO") {
-        timeMode = false;
+        ntpMode = false;
         setDisplayTime("0000");
         logger.println("OK SETZERO");
 
@@ -301,7 +307,7 @@ void handleCommand() {
         char timeStr[5];
         getTimeString(timeStr);
         logger.println("STATUS uptime=" + String(uptime));
-        logger.println("STATUS timeMode=" + String(timeMode));
+        logger.println("STATUS ntpMode=" + String(ntpMode));
         logger.println("STATUS timeOffsetMillis=" + String(timeOffsetMillis));
         logger.println("STATUS secondsSinceMidnight=" + String(secondsSinceMidnight));
         logger.println("STATUS minutesSinceMidnight=" + String(minutesSinceMidnight));
@@ -352,7 +358,7 @@ void setHome() {
     sendCommandToSlaves("GETPOS");
 }
 
-void setNTP() {
+bool setNTP() {
 
     if (waitForSync()) {
         Timezone timezone;
@@ -361,15 +367,17 @@ void setNTP() {
         setTimeInSeconds(timezone.hour()*60*60 + timezone.minute()*60 + timezone.second());
         logger.println("LOG NTP time: " + timezone.dateTime());
 
-        timeMode = true;
+        ntpMode = true;
 
         // Force immediate display update
         minutesSinceMidnight = getTimeInSeconds() / 60;
         char timeStr[5];
         getTimeString(timeStr);
         setDisplayTime(timeStr);
+        return true;
     } else {
         logger.println("LOG NTP time not available");
+        return false;
     }
 
 }

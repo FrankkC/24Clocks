@@ -1,1 +1,3 @@
 Flasher/firmware_slave.h
+build.local.py
+common/CommonConfig.local.h

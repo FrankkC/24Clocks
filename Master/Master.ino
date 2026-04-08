@@ -10,6 +10,7 @@
 #include <ezTime.h>
 #include <ArduinoOTA.h>
 #include <DualLogger.h>
+#include <WiFiUdp.h>
 #include "CommonConfig.h"
 
 HardwareSerial SerialSlave1(SLAVE1_UART_NUM);
@@ -19,6 +20,7 @@ SerialLink slave1(SerialSlave1);
 SerialLink slave2(SerialSlave2);
 
 DualLogger logger;
+WiFiUDP discoveryUdp;
 
 // TODO: Handle mode change
 bool ntpMode = false;
@@ -43,6 +45,7 @@ unsigned long getTimeInSeconds();
 void setDisplayTime(const char* time);
 void setHome();
 bool setNTP();
+void handleDiscoveryProbe();
 
 void setup() {
 
@@ -62,6 +65,12 @@ void setup() {
     Serial.println("\nConnected to WiFi");
     Serial.print("IP Address: ");
     Serial.println(WiFi.localIP());
+
+    if (discoveryUdp.begin(MASTER_DISCOVERY_PORT)) {
+        Serial.printf("Discovery UDP listening on port %u\n", MASTER_DISCOVERY_PORT);
+    } else {
+        Serial.printf("Discovery UDP failed on port %u\n", MASTER_DISCOVERY_PORT);
+    }
 
     // Start Logger (Telnet Server)
     logger.begin();
@@ -131,6 +140,7 @@ void sendDebugStatus() {
 void loop() {
     ArduinoOTA.handle();
     logger.handle(); // Handle Telnet clients
+    handleDiscoveryProbe();
 
     if (logger.consumeNewClient()) {
         sendDebugStatus();
@@ -399,4 +409,34 @@ bool setNTP() {
         return false;
     }
 
+}
+
+void handleDiscoveryProbe() {
+    int packetSize = discoveryUdp.parsePacket();
+    if (packetSize <= 0) return;
+
+    char buffer[96];
+    int len = discoveryUdp.read(buffer, sizeof(buffer) - 1);
+    if (len <= 0) return;
+    buffer[len] = '\0';
+
+    if (strcmp(buffer, MASTER_DISCOVERY_REQUEST) != 0) return;
+
+    IPAddress remoteIp = discoveryUdp.remoteIP();
+    uint16_t remotePort = discoveryUdp.remotePort();
+    String localIp = WiFi.localIP().toString();
+
+    char response[160];
+    snprintf(
+        response,
+        sizeof(response),
+        "%s;IP=%s;PORT=%u;HOST=ESP32-Master",
+        MASTER_DISCOVERY_RESPONSE_PREFIX,
+        localIp.c_str(),
+        MASTER_TCP_PORT
+    );
+
+    discoveryUdp.beginPacket(remoteIp, remotePort);
+    discoveryUdp.write((const uint8_t*)response, strlen(response));
+    discoveryUdp.endPacket();
 }

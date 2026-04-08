@@ -10,6 +10,12 @@
 #define WIFI_SSID "WIFI_SSID"
 #define WIFI_PASSWORD "WIFI_PASSWORD"
 
+// Master network ports and discovery protocol
+#define MASTER_TCP_PORT 23
+#define MASTER_DISCOVERY_PORT 42124
+#define MASTER_DISCOVERY_REQUEST "24CLOCKS_DISCOVER_V1"
+#define MASTER_DISCOVERY_RESPONSE_PREFIX "24CLOCKS_MASTER_V1"
+
 // Load local overrides if present (not tracked by git)
 #if __has_include("CommonConfig.local.h")
 #include "CommonConfig.local.h"

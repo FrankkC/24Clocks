@@ -22,6 +22,7 @@ DualLogger logger;
 
 // TODO: Handle mode change
 bool ntpMode = false;
+bool ntpSyncFailed = false;
 
 unsigned long timeOffsetMillis = 0;
 uint32_t secondsSinceMidnight = 0;
@@ -51,6 +52,7 @@ void setup() {
 
     // WiFi Setup
     WiFi.mode(WIFI_STA);
+    WiFi.setAutoReconnect(true);
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     Serial.print("Connecting to WiFi");
     while (WiFi.waitForConnectResult() != WL_CONNECTED) {
@@ -140,10 +142,14 @@ void loop() {
     // Update every minute
     unsigned int newMinutesSinceMidnight = getTimeInSeconds() / 60;
     if (ntpMode && newMinutesSinceMidnight != minutesSinceMidnight) {
-        // On the hour: resync NTP before moving hands
-        if (newMinutesSinceMidnight % 60 == 0) {
-            logger.println("LOG Hourly NTP resync...");
-            if (!setNTP()) {
+        // Resync NTP: every hour normally, every minute if last sync failed
+        bool shouldResync = (newMinutesSinceMidnight % 60 == 0) || ntpSyncFailed;
+        if (shouldResync) {
+            logger.println("LOG NTP resync...");
+            if (setNTP()) {
+                ntpSyncFailed = false;
+            } else {
+                ntpSyncFailed = true;
                 // NTP failed, move hands using internal clock
                 minutesSinceMidnight = newMinutesSinceMidnight;
                 char timeStr[5];
@@ -366,9 +372,16 @@ void setHome() {
 
 bool setNTP() {
 
-    if (waitForSync()) {
+    if (waitForSync(30)) {
         Timezone timezone;
         timezone.setLocation("Europe/Rome");
+
+        // If timezone rules failed to load, fall back to hardcoded POSIX string
+        // CET-1CEST,M3.5.0,M10.5.0/3 = Rome: UTC+1, DST UTC+2
+        if (timezone.getPosix().isEmpty()) {
+            logger.println("LOG Timezone rules not loaded, using hardcoded POSIX");
+            timezone.setPosix("CET-1CEST,M3.5.0,M10.5.0/3");
+        }
 
         setTimeInSeconds(timezone.hour()*60*60 + timezone.minute()*60 + timezone.second());
         logger.println("LOG NTP time: " + timezone.dateTime());
@@ -382,7 +395,7 @@ bool setNTP() {
         setDisplayTime(timeStr);
         return true;
     } else {
-        logger.println("LOG NTP time not available");
+        logger.println("LOG NTP sync timed out");
         return false;
     }
 

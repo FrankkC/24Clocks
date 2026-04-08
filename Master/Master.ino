@@ -10,6 +10,7 @@
 #include <ezTime.h>
 #include <ArduinoOTA.h>
 #include <DualLogger.h>
+#include <ESPmDNS.h>
 #include <WiFiUdp.h>
 #include "CommonConfig.h"
 
@@ -66,6 +67,13 @@ void setup() {
     Serial.print("IP Address: ");
     Serial.println(WiFi.localIP());
 
+    if (MDNS.begin(MASTER_MDNS_HOSTNAME)) {
+        MDNS.addService("telnet", "tcp", MASTER_TCP_PORT);
+        Serial.printf("mDNS started: %s.local\n", MASTER_MDNS_HOSTNAME);
+    } else {
+        Serial.println("mDNS failed to start");
+    }
+
     if (discoveryUdp.begin(MASTER_DISCOVERY_PORT)) {
         Serial.printf("Discovery UDP listening on port %u\n", MASTER_DISCOVERY_PORT);
     } else {
@@ -89,7 +97,7 @@ void setup() {
     sendCommandToSpecificSlave(2, "SETSLAVEOFFSET=1");
     delay(100); // Give slaves time to process the command
 
-    ArduinoOTA.setHostname("ESP32-Master");
+    ArduinoOTA.setHostname(MASTER_MDNS_HOSTNAME);
 
     ArduinoOTA.onStart([]() {
         String type;

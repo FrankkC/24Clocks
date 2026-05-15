@@ -47,6 +47,8 @@ void setDisplayTime(const char* time);
 void setHome();
 bool setNTP();
 void handleDiscoveryProbe();
+String formatUptime(unsigned long seconds);
+String formatCurrentTime();
 
 void setup() {
 
@@ -133,11 +135,33 @@ void setup() {
 
 }
 
+String formatUptime(unsigned long seconds) {
+    unsigned long days = seconds / 86400UL;
+    unsigned long hours = (seconds % 86400UL) / 3600UL;
+    unsigned long minutes = (seconds % 3600UL) / 60UL;
+    unsigned long secs = seconds % 60UL;
+    char buf[40];
+    sprintf(buf, "%lud %luh %lum %lus", days, hours, minutes, secs);
+    return String(buf);
+}
+
+String formatCurrentTime() {
+    unsigned long timeMs = (timeOffsetMillis + millis()) % oneDayMillis;
+    unsigned long h = timeMs / 3600000UL;
+    unsigned long m = (timeMs % 3600000UL) / 60000UL;
+    unsigned long s = (timeMs % 60000UL) / 1000UL;
+    unsigned long ms = timeMs % 1000UL;
+    char buf[16];
+    sprintf(buf, "%02lu:%02lu:%02lu.%03lu", h, m, s, ms);
+    return String(buf);
+}
+
 void sendDebugStatus() {
     unsigned long uptime = millis() / 1000;
     char timeStr[5];
     getTimeString(timeStr);
-    logger.println("STATUS uptime=" + String(uptime));
+    logger.println("STATUS uptime=" + String(uptime) + " (" + formatUptime(uptime) + ")");
+    logger.println("STATUS currentTime=" + formatCurrentTime());
     logger.println("STATUS ntpMode=" + String(ntpMode));
     logger.println("STATUS timeOffsetMillis=" + String(timeOffsetMillis));
     logger.println("STATUS secondsSinceMidnight=" + String(secondsSinceMidnight));
@@ -329,14 +353,15 @@ void handleCommand() {
 
     } else if (cmdName == "UPTIME") {
         unsigned long uptime = millis() / 1000;
-        logger.println("STATUS uptime=" + String(uptime));
+        logger.println("STATUS uptime=" + String(uptime) + " (" + formatUptime(uptime) + ")");
         logger.println("OK UPTIME");
 
     } else if (cmdName == "DEBUG") {
         unsigned long uptime = millis() / 1000;
         char timeStr[5];
         getTimeString(timeStr);
-        logger.println("STATUS uptime=" + String(uptime));
+        logger.println("STATUS uptime=" + String(uptime) + " (" + formatUptime(uptime) + ")");
+        logger.println("STATUS currentTime=" + formatCurrentTime());
         logger.println("STATUS ntpMode=" + String(ntpMode));
         logger.println("STATUS timeOffsetMillis=" + String(timeOffsetMillis));
         logger.println("STATUS secondsSinceMidnight=" + String(secondsSinceMidnight));
@@ -391,6 +416,18 @@ void setHome() {
 bool setNTP() {
 
     if (waitForSync(30)) {
+        // Force a fresh NTP sync to avoid using stale cached time
+        // (waitForSync returns immediately if already synced — without this,
+        // accumulated millis() drift is never corrected, even on SETNTP)
+        time_t prevSync = lastNtpUpdateTime();
+        updateNTP();
+        unsigned long startWait = millis();
+        while (millis() - startWait < 5000) {
+            events();
+            if (lastNtpUpdateTime() != prevSync) break;
+            delay(20);
+        }
+
         Timezone timezone;
         timezone.setLocation("Europe/Rome");
 
@@ -402,7 +439,8 @@ bool setNTP() {
         }
 
         setTimeInSeconds(timezone.hour()*60*60 + timezone.minute()*60 + timezone.second());
-        logger.println("LOG NTP time: " + timezone.dateTime());
+        logger.println("LOG NTP UTC time: " + UTC.dateTime());
+        logger.println("LOG NTP Rome time: " + timezone.dateTime());
 
         ntpMode = true;
 

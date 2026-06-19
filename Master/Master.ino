@@ -26,6 +26,9 @@ WiFiUDP discoveryUdp;
 // TODO: Handle mode change
 bool ntpMode = false;
 bool ntpSyncFailed = false;
+// True while the clock should keep advancing (NTP or manual SETTIME).
+// SETHOME/SETZERO set this false to freeze the display.
+bool clockRunning = false;
 
 unsigned long timeOffsetMillis = 0;
 uint32_t secondsSinceMidnight = 0;
@@ -181,24 +184,26 @@ void loop() {
     slave1.loop();
     slave2.loop();
 
-    // Update every minute
+    // Advance the display every minute while the clock is running
+    // (NTP mode or manually set via SETTIME). SETHOME/SETZERO freeze it.
     unsigned int newMinutesSinceMidnight = getTimeInSeconds() / 60;
-    if (ntpMode && newMinutesSinceMidnight != minutesSinceMidnight) {
-        // Resync NTP: every hour normally, every minute if last sync failed
-        bool shouldResync = (newMinutesSinceMidnight % 60 == 0) || ntpSyncFailed;
-        if (shouldResync) {
-            logger.println("LOG NTP resync...");
-            if (setNTP()) {
-                ntpSyncFailed = false;
-            } else {
-                ntpSyncFailed = true;
-                // NTP failed, move hands using internal clock
-                minutesSinceMidnight = newMinutesSinceMidnight;
-                char timeStr[5];
-                getTimeString(timeStr);
-                setDisplayTime(timeStr);
+    if (clockRunning && newMinutesSinceMidnight != minutesSinceMidnight) {
+        bool displayPushed = false;
+        if (ntpMode) {
+            // Resync NTP: every hour normally, every minute if last sync failed
+            bool shouldResync = (newMinutesSinceMidnight % 60 == 0) || ntpSyncFailed;
+            if (shouldResync) {
+                logger.println("LOG NTP resync...");
+                if (setNTP()) {
+                    ntpSyncFailed = false;
+                    displayPushed = true; // setNTP() already updated the display
+                } else {
+                    ntpSyncFailed = true;
+                    // NTP failed, fall through to move hands using internal clock
+                }
             }
-        } else {
+        }
+        if (!displayPushed) {
             minutesSinceMidnight = newMinutesSinceMidnight;
             char timeStr[5];
             getTimeString(timeStr);
@@ -318,7 +323,13 @@ void handleCommand() {
 
         setTimeInSeconds(newTimeInSeconds);
         ntpMode = false;
-        minutesSinceMidnight = 9999; // Force update
+        clockRunning = true;
+        // Push the new time to the slaves immediately (the loop only advances
+        // it on the next minute change), then keep ticking from here.
+        minutesSinceMidnight = getTimeInSeconds() / 60;
+        char timeStr[5];
+        getTimeString(timeStr);
+        setDisplayTime(timeStr);
         logger.println("OK SETTIME");
 
     } else if (cmdName == "SETNTP") {
@@ -332,11 +343,13 @@ void handleCommand() {
 
     } else if (cmdName == "SETHOME") {
         ntpMode = false;
+        clockRunning = false;
         setHome();
         logger.println("OK SETHOME");
 
     } else if (cmdName == "SETZERO") {
         ntpMode = false;
+        clockRunning = false;
         setDisplayTime("0000");
         logger.println("OK SETZERO");
 
@@ -429,12 +442,14 @@ bool setNTP() {
         }
 
         Timezone timezone;
-        timezone.setLocation("Europe/Rome");
-
-        // If timezone rules failed to load, fall back to hardcoded POSIX string
+        // setLocation() does a UDP lookup to a remote timezone server. If it
+        // fails/times out it leaves the zone at the default UTC and returns
+        // false (a freshly constructed Timezone has _posix = "UTC", which is
+        // NOT empty) -- so check the return value, not getPosix().isEmpty(),
+        // otherwise a failed lookup silently shows UTC (2h behind during CEST).
         // CET-1CEST,M3.5.0,M10.5.0/3 = Rome: UTC+1, DST UTC+2
-        if (timezone.getPosix().isEmpty()) {
-            logger.println("LOG Timezone rules not loaded, using hardcoded POSIX");
+        if (!timezone.setLocation("Europe/Rome")) {
+            logger.println("LOG Timezone lookup failed, using hardcoded POSIX");
             timezone.setPosix("CET-1CEST,M3.5.0,M10.5.0/3");
         }
 
@@ -443,6 +458,7 @@ bool setNTP() {
         logger.println("LOG NTP Rome time: " + timezone.dateTime());
 
         ntpMode = true;
+        clockRunning = true;
 
         // Force immediate display update
         minutesSinceMidnight = getTimeInSeconds() / 60;

@@ -37,6 +37,16 @@ uint16_t minutesSinceMidnight = 0;
 const uint32_t oneDaySeconds = 24*60*60;
 const unsigned long oneDayMillis = (unsigned long)oneDaySeconds*1000UL;
 
+// WiFi watchdog tunables
+const unsigned long WIFI_CHECK_INTERVAL_MS = 5000;    // how often to check the link
+const unsigned long WIFI_RETRY_INTERVAL_MS = 15000;   // how often to force a reconnect while down
+const unsigned long WIFI_REBOOT_AFTER_MS   = 0;       // reboot after this long offline (0 = never)
+
+// WiFi watchdog state
+unsigned long lastWifiCheck = 0;
+unsigned long lastWifiRetry = 0;
+unsigned long wifiDownSince = 0;  // millis() when the link dropped; 0 while connected
+
 void sendCommandToSlaves(const char* command);
 void sendCommandToSpecificSlave(int slaveNum, const char* command);
 void handleSlaveMessage1(const char* rawCommand);
@@ -50,6 +60,7 @@ void setDisplayTime(const char* time);
 void setHome();
 bool setNTP();
 void handleDiscoveryProbe();
+void handleWifi();
 String formatUptime(unsigned long seconds);
 String formatCurrentTime();
 
@@ -172,7 +183,55 @@ void sendDebugStatus() {
     logger.println("STATUS timeStr=" + String(timeStr));
 }
 
+// Non-blocking WiFi watchdog. ESP32's setAutoReconnect() is unreliable: after a
+// router reboot or RF glitch the link can drop and never come back on its own.
+// This checks the link periodically, forces a reconnect while down, re-announces
+// mDNS on recovery, and reboots as a last resort so the clock heals itself
+// instead of needing a power cycle.
+void handleWifi() {
+    unsigned long now = millis();
+    if (now - lastWifiCheck < WIFI_CHECK_INTERVAL_MS) return;
+    lastWifiCheck = now;
+
+    if (WiFi.status() == WL_CONNECTED) {
+        if (wifiDownSince != 0) {
+            // Link just recovered
+            logger.println("LOG WiFi reconnected, IP: " + WiFi.localIP().toString());
+            // mDNS does not re-announce itself after a reconnect on ESP32
+            MDNS.end();
+            if (MDNS.begin(MASTER_MDNS_HOSTNAME)) {
+                MDNS.addService("telnet", "tcp", MASTER_TCP_PORT);
+            }
+            wifiDownSince = 0;
+        }
+        return;
+    }
+
+    // Not connected
+    if (wifiDownSince == 0) {
+        wifiDownSince = now;
+        lastWifiRetry = 0;  // retry immediately
+        logger.println("LOG WiFi lost, attempting to reconnect...");
+    }
+
+    // Last resort: reboot after a prolonged outage
+    if (WIFI_REBOOT_AFTER_MS != 0 && now - wifiDownSince >= WIFI_REBOOT_AFTER_MS) {
+        logger.println("LOG WiFi down too long, restarting...");
+        delay(100);
+        ESP.restart();
+    }
+
+    // Force a reconnect periodically (auto-reconnect alone is unreliable on ESP32)
+    if (lastWifiRetry == 0 || now - lastWifiRetry >= WIFI_RETRY_INTERVAL_MS) {
+        lastWifiRetry = now;
+        logger.println("LOG WiFi reconnect attempt...");
+        WiFi.disconnect();
+        WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    }
+}
+
 void loop() {
+    handleWifi(); // Keep the WiFi link alive / reconnect if it drops
     ArduinoOTA.handle();
     logger.handle(); // Handle Telnet clients
     handleDiscoveryProbe();

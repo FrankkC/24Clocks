@@ -12,6 +12,7 @@
 #include <DualLogger.h>
 #include <ESPmDNS.h>
 #include <WiFiUdp.h>
+#include <esp_timer.h>
 #include "CommonConfig.h"
 
 HardwareSerial SerialSlave1(SLAVE1_UART_NUM);
@@ -30,12 +31,23 @@ bool ntpSyncFailed = false;
 // SETHOME/SETZERO set this false to freeze the display.
 bool clockRunning = false;
 
-unsigned long timeOffsetMillis = 0;
+// 64-bit so that (timeOffsetMillis + millis64()) never overflows.
+uint64_t timeOffsetMillis = 0;
 uint32_t secondsSinceMidnight = 0;
 uint16_t minutesSinceMidnight = 0;
 
 const uint32_t oneDaySeconds = 24*60*60;
 const unsigned long oneDayMillis = (unsigned long)oneDaySeconds*1000UL;
+
+// Arduino's millis() is a 32-bit counter: it wraps after ~49.7 days, and any
+// sum built on it (timeOffsetMillis + millis()) overflows even earlier -- which
+// made the clock jump to a bogus time after ~48 days of uptime and made every
+// SETTIME/NTP sync read back wrong. esp_timer_get_time() is the same clock
+// source millis() is derived from, but 64-bit (it wraps after ~292000 years),
+// so all time-of-day and uptime math below uses this instead of millis().
+uint64_t millis64() {
+    return (uint64_t)(esp_timer_get_time() / 1000LL);
+}
 
 // WiFi watchdog tunables
 const unsigned long WIFI_CHECK_INTERVAL_MS = 5000;    // how often to check the link
@@ -160,7 +172,7 @@ String formatUptime(unsigned long seconds) {
 }
 
 String formatCurrentTime() {
-    unsigned long timeMs = (timeOffsetMillis + millis()) % oneDayMillis;
+    unsigned long timeMs = (unsigned long)((timeOffsetMillis + millis64()) % oneDayMillis);
     unsigned long h = timeMs / 3600000UL;
     unsigned long m = (timeMs % 3600000UL) / 60000UL;
     unsigned long s = (timeMs % 60000UL) / 1000UL;
@@ -171,13 +183,13 @@ String formatCurrentTime() {
 }
 
 void sendDebugStatus() {
-    unsigned long uptime = millis() / 1000;
+    unsigned long uptime = (unsigned long)(millis64() / 1000ULL);
     char timeStr[5];
     getTimeString(timeStr);
     logger.println("STATUS uptime=" + String(uptime) + " (" + formatUptime(uptime) + ")");
     logger.println("STATUS currentTime=" + formatCurrentTime());
     logger.println("STATUS ntpMode=" + String(ntpMode));
-    logger.println("STATUS timeOffsetMillis=" + String(timeOffsetMillis));
+    logger.println("STATUS timeOffsetMillis=" + String((unsigned long)timeOffsetMillis));
     logger.println("STATUS secondsSinceMidnight=" + String(secondsSinceMidnight));
     logger.println("STATUS minutesSinceMidnight=" + String(minutesSinceMidnight));
     logger.println("STATUS timeStr=" + String(timeStr));
@@ -424,18 +436,18 @@ void handleCommand() {
         logger.disconnectClient();
 
     } else if (cmdName == "UPTIME") {
-        unsigned long uptime = millis() / 1000;
+        unsigned long uptime = (unsigned long)(millis64() / 1000ULL);
         logger.println("STATUS uptime=" + String(uptime) + " (" + formatUptime(uptime) + ")");
         logger.println("OK UPTIME");
 
     } else if (cmdName == "DEBUG") {
-        unsigned long uptime = millis() / 1000;
+        unsigned long uptime = (unsigned long)(millis64() / 1000ULL);
         char timeStr[5];
         getTimeString(timeStr);
         logger.println("STATUS uptime=" + String(uptime) + " (" + formatUptime(uptime) + ")");
         logger.println("STATUS currentTime=" + formatCurrentTime());
         logger.println("STATUS ntpMode=" + String(ntpMode));
-        logger.println("STATUS timeOffsetMillis=" + String(timeOffsetMillis));
+        logger.println("STATUS timeOffsetMillis=" + String((unsigned long)timeOffsetMillis));
         logger.println("STATUS secondsSinceMidnight=" + String(secondsSinceMidnight));
         logger.println("STATUS minutesSinceMidnight=" + String(minutesSinceMidnight));
         logger.println("STATUS timeStr=" + String(timeStr));
@@ -452,10 +464,10 @@ void handleCommand() {
 }
 
 void setTimeInSeconds(unsigned long secondsSinceMidnight) {
-    // timeOffsetMillis is the difference between the desired time and millis(),
+    // timeOffsetMillis is the difference between the desired time and millis64(),
     // wrapped to stay within one day (in milliseconds).
     unsigned long targetMillis = secondsSinceMidnight * 1000UL;
-    unsigned long currentMillisOfDay = millis() % oneDayMillis;
+    unsigned long currentMillisOfDay = (unsigned long)(millis64() % oneDayMillis);
     if (targetMillis >= currentMillisOfDay) {
         timeOffsetMillis = targetMillis - currentMillisOfDay;
     } else {
@@ -465,7 +477,7 @@ void setTimeInSeconds(unsigned long secondsSinceMidnight) {
 
 unsigned long getTimeInSeconds() {
     // The returned value must be between 0 and oneDaySeconds-1
-    return ((timeOffsetMillis + millis()) % oneDayMillis) / 1000UL;
+    return (unsigned long)(((timeOffsetMillis + millis64()) % oneDayMillis) / 1000ULL);
 }
 
 void setDisplayTime(const char* time) {

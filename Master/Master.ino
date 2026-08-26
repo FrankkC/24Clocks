@@ -125,6 +125,7 @@ void setup() {
     sendCommandToSpecificSlave(2, "SETSLAVEOFFSET=1");
     delay(100); // Give slaves time to process the command
 
+    ArduinoOTA.setPort(MASTER_OTA_PORT);
     ArduinoOTA.setHostname(MASTER_MDNS_HOSTNAME);
 
     ArduinoOTA.onStart([]() {
@@ -213,6 +214,12 @@ void handleWifi() {
             MDNS.end();
             if (MDNS.begin(MASTER_MDNS_HOSTNAME)) {
                 MDNS.addService("telnet", "tcp", MASTER_TCP_PORT);
+                // MDNS.end() also dropped the _arduino._tcp service that
+                // ArduinoOTA.begin() registered in setup(). Without this the
+                // board still works but disappears from arduino-cli's network
+                // discovery, so OTA uploads fail with "port not found" until
+                // the next reboot.
+                MDNS.enableArduino(MASTER_OTA_PORT, false);
             }
             wifiDownSince = 0;
         }

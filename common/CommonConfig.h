@@ -12,6 +12,7 @@
 
 // Master network ports and discovery protocol
 #define MASTER_TCP_PORT 23
+#define MASTER_OTA_PORT 3232
 #define MASTER_DISCOVERY_PORT 42124
 #define MASTER_MDNS_HOSTNAME "24clocks-master"
 #define MASTER_DISCOVERY_REQUEST "24CLOCKS_DISCOVER_V1"
